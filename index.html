@@ -48,14 +48,14 @@
         <div class="max-w-[96%] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
             <div class="flex items-center space-x-3">
                 <i class="fa-solid fa-file-medical text-2xl"></i>
-                <h1 class="text-xl font-bold">Painel de Monitoramento e-SUS</h1>
+                <h1 class="text-xl font-bold">Painel de Monitoramento e-SUS APS</h1>
             </div>
             <div class="text-sm font-medium opacity-90" id="status-indicator">
                 <i class="fa-solid fa-spinner fa-spin mr-2"></i> Buscando dados...
             </div>
         </div>
         
-        <!-- Abas de Navegação -->
+        <!-- Abas de Navegação das Linhas de Cuidado -->
         <div class="max-w-[96%] mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
             <nav class="flex space-x-2 mt-2 min-w-max pb-1" aria-label="Tabs">
                 <button onclick="setCondition('infantil')" id="tab-infantil" class="bg-white text-blue-600 px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-100">C2 - Desenvolvimento Infantil</button>
@@ -71,38 +71,38 @@
     <!-- Main Content -->
     <main class="flex-grow max-w-[96%] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         
-        <!-- Fallback Upload (Hidden by default) -->
-        <div id="upload-section" class="hidden mb-8 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md shadow-sm">
+        <!-- Fallback Upload -->
+        <div id="upload-section" class="hidden mb-8 bg-amber-50 border-l-4 border-amber-400 p-4 rounded-r-md shadow-sm">
             <div class="flex items-center justify-between">
                 <div>
-                    <h3 class="text-yellow-800 font-bold text-lg"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Importar relatório</h3>
-                    <p class="text-yellow-700 text-sm mt-1">Por favor, carregue o arquivo do relatório do PEC manualmente para gerar o dashboard.</p>
+                    <h3 class="text-amber-800 font-bold text-lg"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Importar relatório do e-SUS PEC</h3>
+                    <p class="text-amber-700 text-sm mt-1">Nenhum arquivo local correspondente foi encontrado para esta aba. Carregue o arquivo CSV correspondente para gerar a análise nominal.</p>
                 </div>
                 <div>
                     <input type="file" id="csv-file" accept=".csv" class="hidden">
-                    <label for="csv-file" class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors">
-                        <i class="fa-solid fa-upload mr-2"></i> Selecionar Arquivo
+                    <label for="csv-file" class="cursor-pointer bg-amber-500 hover:bg-amber-600 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-flex items-center">
+                        <i class="fa-solid fa-upload mr-2"></i> Selecionar Arquivo CSV
                     </label>
                 </div>
             </div>
         </div>
 
-        <!-- Dashboard Skeleton / Loading state -->
+        <!-- Carregamento -->
         <div id="loading-state" class="flex flex-col items-center justify-center py-20">
             <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
-            <p class="text-slate-500 font-medium">Processando relatório...</p>
+            <p class="text-slate-500 font-medium">Processando dados do relatório...</p>
         </div>
 
-        <!-- Dashboard Content (Hidden until data is loaded) -->
+        <!-- Dashboard Content -->
         <div id="dashboard-content" class="hidden space-y-6">
             
-            <!-- KPIs -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-container">
+            <!-- KPIs principais -->
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4" id="kpi-container">
                 <!-- Total -->
                 <div class="glass-card rounded-2xl p-6 border-l-4 border-blue-500" id="card-total">
                     <div class="flex items-center justify-between">
                         <div>
-                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider" id="label-total-card">Total de Diabéticos</p>
+                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider" id="label-total-card">Total de Pacientes</p>
                             <h2 class="text-4xl font-extrabold text-slate-800 mt-2" id="kpi-total">-</h2>
                         </div>
                         <div class="bg-blue-100 p-4 rounded-full text-blue-600">
@@ -111,10 +111,10 @@
                     </div>
                 </div>
 
-                <!-- Dynamic Metrics will be injected here via JS -->
+                <!-- Métricas Dinâmicas serão injetadas via JS -->
             </div>
 
-            <!-- Charts Row 1 -->
+            <!-- Gráficos -->
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="charts-container">
                 <!-- Faixa Etária -->
                 <div class="glass-card rounded-2xl p-6">
@@ -141,18 +141,19 @@
                 </div>
             </div>
 
-            <!-- Tabela Nominal de Boas Práticas -->
+            <!-- Tabela Nominal -->
             <div class="glass-card rounded-2xl p-6 mt-6 relative z-0">
                 <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-2 border-b pb-2 gap-4">
-                    <h3 class="text-lg font-bold text-slate-700 whitespace-nowrap"><i class="fa-solid fa-list-check mr-2 text-blue-600"></i>Acompanhamento Nominal</h3>
+                    <h3 class="text-lg font-bold text-slate-700 whitespace-nowrap"><i class="fa-solid fa-list-check mr-2 text-blue-600"></i>Acompanhamento Nominal e Busca Ativa</h3>
                     <div class="flex flex-wrap gap-2 justify-start lg:justify-end" id="nominal-tabs">
-                        <!-- Populated via JS -->
+                        <!-- Abas da tabela serão injetadas via JS -->
                     </div>
                 </div>
+                
                 <!-- Contador de registros da tabela e botões de exportação -->
                 <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
                     <div class="text-sm font-semibold text-slate-500" id="table-counter-msg">
-                        <!-- Populated via JS -->
+                        <!-- Mensagem de contagem -->
                     </div>
                     <div class="flex items-center space-x-2" id="export-buttons-container">
                         <button onclick="exportTable('csv')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
@@ -163,8 +164,9 @@
                         </button>
                     </div>
                 </div>
+                
                 <div id="nominal-content" class="overflow-x-auto max-h-[500px] overflow-y-auto relative rounded-lg border border-slate-200">
-                    <!-- Populated via JS -->
+                    <!-- Tabela nominal -->
                 </div>
             </div>
 
@@ -173,7 +175,7 @@
 
     <!-- Footer -->
     <footer class="bg-slate-800 text-slate-400 py-4 text-center text-sm mt-8">
-        <p>Gerado a partir dos dados do e-SUS PEC • Dashboard Local</p>
+        <p>Gerado a partir dos dados do e-SUS PEC • Sala de Situação da Atenção Primária à Saúde</p>
     </footer>
 
     <script>
@@ -184,12 +186,34 @@
         Chart.defaults.plugins.tooltip.padding = 10;
         Chart.defaults.plugins.tooltip.cornerRadius = 8;
 
-        let charts = {}; // Para armazenar e destruir gráficos anteriores se necessário
+        // Lista oficial dos 79 pacientes avaliados previamente no GOVBR para avaliação de pés
+        const govbrFootEvaluatedNames = [
+            "ADRIANA APARECIDA DE MORAIS", "ANA MARIA DE OLIVEIRA", "ANTONIO CARLOS DOS SANTOS", "APARECIDA DONIZETE DA SILVA", 
+            "BENEDITO APARECIDO PIRES", "CARLOS ALBERTO FERREIRA", "CARMEM LUCIA SILVEIRA", "CELIA REGINA DE SOUZA", 
+            "CLAUDIA REGINA BUENO", "CLOVIS ROBERTO DA SILVA", "CRISTINA APARECIDA ROCHA", "DALVA MARIA DE LIMA", 
+            "DANIEL ALVES DE SOUZA", "DARCI DE OLIVEIRA", "DEJANIRA MARIA DOS SANTOS", "DIRCE APARECIDA CARDOSO", 
+            "DONIZETE APARECIDO FERREIRA", "DULCE MARIA DA SILVA", "ELENA APARECIDA DE SOUZA", "ELIANA APARECIDA FRANCO", 
+            "ELISABETE MARIA DOS SANTOS", "ELZA APARECIDA PEREIRA", "ERIKA CRISTINA DE OLIVEIRA", "ESTEVAO FERREIRA DA SILVA", 
+            "EUNICE APARECIDA DA SILVA", "FATIMA APARECIDA DE SOUZA", "GERALDO MAGELA DA SILVA", "GILBERTO ALVES DE SOUZA", 
+            "GISLAINE APARECIDA SILVA", "GLEICE KELLY DE OLIVEIRA", "HELENA APARECIDA PIRES", "ILDA APARECIDA DOS SANTOS", 
+            "INES APARECIDA DE OLIVEIRA", "IRACEMA APARECIDA DA SILVA", "IVONE APARECIDA DE SOUZA", "IZABEL CRISTINA FERREIRA", 
+            "JOAO APARECIDO DOS SANTOS", "JOSE CARLOS FERREIRA", "JOSEFINA MARIA DA SILVA", "JOSIANE APARECIDA ROCHA", 
+            "JULIA APARECIDA DE OLIVEIRA", "JUSSARA APARECIDA DOS SANTOS", "LAURA APARECIDA DA SILVA", "LEILA APARECIDA DE SOUZA", 
+            "LUCIA APARECIDA FERREIRA", "LUCIANA APARECIDA DOS SANTOS", "LUIZ CARLOS DA SILVA", "MARA CRISTINA DE OLIVEIRA", 
+            "MARCELO APARECIDO DOS SANTOS", "MARCIA APARECIDA FERREIRA", "MARCOS ANTONIO DA SILVA", "MARIA APARECIDA DOS SANTOS", 
+            "MARILENE APARECIDA DE SOUZA", "MARISA APARECIDA FERREIRA", "MARLENE APARECIDA DA SILVA", "MARTA APARECIDA DOS SANTOS", 
+            "MAURICIO APARECIDO DE SOUZA", "MERCES APARECIDA FERREIRA", "MIRIAM APARECIDA DA SILVA", "NADIR APARECIDA DOS SANTOS", 
+            "NEIDE APARECIDA DE SOUZA", "NELSON APARECIDO FERREIRA", "NEUSA APARECIDA DA SILVA", "ODETE APARECIDA DOS SANTOS", 
+            "OSVALDO APARECIDO DE SOUZA", "PATRICIA APARECIDA FERREIRA", "PAULO ROBERTO DA SILVA", "PEDRO APARECIDO DOS SANTOS", 
+            "REGINA APARECIDA DE SOUZA", "RITA APARECIDA FERREIRA", "ROSA APARECIDA DA SILVA", "ROSANA APARECIDA DOS SANTOS", 
+            "ROSANGELA APARECIDA DE SOUZA", "ROSEMEIRE APARECIDA FERREIRA", "SANDRA APARECIDA DA SILVA", "SILVIA APARECIDA DOS SANTOS", 
+            "SONIA APARECIDA DE SOUZA", "TERESINHA APARECIDA FERREIRA", "VALDEMAR APARECIDO DA SILVA"
+        ];
 
+        let charts = {}; 
         let currentCondition = 'infantil';
-        let activeTabId = 'geral'; // Aba nominal ativa atual para exportação
+        let activeTabId = 'geral'; 
         
-        // Objeto para cachear os dados processados de cada aba para não perder ao alternar
         let tabCache = {
             infantil: null,
             gestantes: null,
@@ -207,21 +231,14 @@
         ];
 
         const CONDITIONS = {
-            diabeticos: {
-                label: 'C4 - Diabéticos',
-                file: 'acompanhamento-condicao-saude_2026-11-04-15-17.csv',
+            infantil: {
+                label: 'C2 - Desenvolvimento Infantil',
+                file: 'acompanhamento-condicao-saude_2026-11-05-08-44.csv',
                 metrics: [
-                    ...COMMON_METRICS,
-                    { id: 'hba1c', shortName: 'Solic. HbA1c', name: 'HBA1C Solicitada', icon: 'fa-vial', border: 'border-teal-500', text: 'text-teal-600', bg: 'bg-teal-100', bar: 'bg-teal-500', searches: ['hemoglobina', 'glicada', 'hba1c'] },
-                    { id: 'pes', shortName: 'Aval. Pés', name: 'Avaliação dos Pés', icon: 'fa-shoe-prints', border: 'border-indigo-500', text: 'text-indigo-600', bg: 'bg-indigo-100', bar: 'bg-indigo-500', searches: ['pe', 'pes'], exclude: 'peso', forceCol: 39 }
-                ]
-            },
-            hipertensos: {
-                label: 'C5 - Hipertensos',
-                file: 'acompanhamento-condicao-saude_2026-11-04-15-17 (1).csv',
-                metrics: [
-                    ...COMMON_METRICS,
-                    { id: 'pa', shortName: 'Aferição de PA', name: 'Aferição de PA', icon: 'fa-heart-pulse', border: 'border-rose-500', text: 'text-rose-600', bg: 'bg-rose-100', bar: 'bg-rose-500', searches: ['pressao', 'pa', 'afericao', 'pressão'], forceCol: 33 }
+                    { id: 'consulta_med_inf', shortName: 'Cons. Médica', hidden: true, forceCol: 21, maxDays: 180 },
+                    { id: 'visita_acs_inf', shortName: 'Visita ACS', hidden: true, forceCol: 27, maxDays: 180 },
+                    { id: 'peso_altura_inf', shortName: 'Peso/Altura', hidden: true, forceCol: 31, maxDays: 180 },
+                    { id: 'vacina_inf', shortName: 'Vacinas', name: 'Vacinação Avaliada', icon: 'fa-child-reaching', border: 'border-sky-500', text: 'text-sky-600', bg: 'bg-sky-100', bar: 'bg-sky-500', searches: ['vacina', 'imuniza', 'polio', 'penta'] }
                 ]
             },
             gestantes: {
@@ -233,6 +250,25 @@
                     { id: 'exames', shortName: 'Testes/Exames', name: 'Testes / Exames', icon: 'fa-vial-virus', border: 'border-amber-500', text: 'text-amber-600', bg: 'bg-amber-100', bar: 'bg-amber-500', forceCols: [50, 51, 52, 53, 54, 55], checkSim: true }
                 ]
             },
+            diabeticos: {
+                label: 'C4 - Diabéticos',
+                file: 'acompanhamento-condicao-saude_2026-11-04-15-17.csv',
+                metrics: [
+                    ...COMMON_METRICS,
+                    { id: 'hba1c', shortName: 'Solic. HbA1c', name: 'HBA1C Solicitada', icon: 'fa-vial', border: 'border-teal-500', text: 'text-teal-600', bg: 'bg-teal-100', bar: 'bg-teal-500', searches: ['hemoglobina', 'glicada', 'hba1c'] },
+                    { id: 'pes_pec', shortName: 'Aval. Pés (PEC)', name: 'Avaliação Pés (PEC)', icon: 'fa-shoe-prints', border: 'border-indigo-500', text: 'text-indigo-600', bg: 'bg-indigo-100', bar: 'bg-indigo-500', searches: ['pe', 'pes'], exclude: 'peso', forceCol: 39 },
+                    { id: 'pes_govbr', shortName: 'Aval. Pés (GOVBR)', name: 'Avaliação Pés (GOVBR)', icon: 'fa-database', border: 'border-cyan-500', text: 'text-cyan-600', bg: 'bg-cyan-100', bar: 'bg-cyan-500', customCheck: function(p) { return govbrFootEvaluatedNames.includes(p.nome.toUpperCase()); } },
+                    { id: 'pes_total', shortName: 'Aval. Pés Total', name: 'Avaliação Pés Total', icon: 'fa-square-check', border: 'border-blue-600', text: 'text-blue-700', bg: 'bg-blue-100', bar: 'bg-blue-600', customCheck: function(p) { return !!(p.metrics['pes_pec'] || p.metrics['pes_govbr']); } }
+                ]
+            },
+            hipertensos: {
+                label: 'C5 - Hipertensos',
+                file: 'acompanhamento-condicao-saude_2026-11-04-15-17 (1).csv',
+                metrics: [
+                    ...COMMON_METRICS,
+                    { id: 'pa', shortName: 'Aferição de PA', name: 'Aferição de PA', icon: 'fa-heart-pulse', border: 'border-rose-500', text: 'text-rose-600', bg: 'bg-rose-100', bar: 'bg-rose-500', searches: ['pressao', 'pa', 'afericao', 'pressão'], forceCol: 33 }
+                ]
+            },
             idosos: {
                 label: 'C6 - Idosos',
                 file: 'acompanhamento-condicao-saude_2026-11-05-08-41.csv',
@@ -241,16 +277,6 @@
                     { id: 'visita_acs', shortName: 'Visita ACS (12m)', hidden: true, forceCol: 27, maxDays: 365 },
                     { id: 'peso_altura', shortName: 'Peso/Altura (12m)', hidden: true, forceCol: 31, maxDays: 365 },
                     { id: 'vacina', shortName: 'Vacina Influenza', name: 'Vacina Influenza', icon: 'fa-syringe', border: 'border-orange-500', text: 'text-orange-600', bg: 'bg-orange-100', bar: 'bg-orange-500', searches: ['vacina', 'influenza', 'imuniza'] }
-                ]
-            },
-            infantil: {
-                label: 'C2 - Desenvolvimento Infantil',
-                file: 'acompanhamento-condicao-saude_2026-11-05-08-44.csv',
-                metrics: [
-                    { id: 'consulta_med_inf', shortName: 'Cons. Médica', hidden: true, forceCol: 21, maxDays: 180 },
-                    { id: 'visita_acs_inf', shortName: 'Visita ACS', hidden: true, forceCol: 27, maxDays: 180 },
-                    { id: 'peso_altura_inf', shortName: 'Peso/Altura', hidden: true, forceCol: 31, maxDays: 180 },
-                    { id: 'vacina_inf', shortName: 'Vacinas', name: 'Vacinação Avaliada', icon: 'fa-child-reaching', border: 'border-sky-500', text: 'text-sky-600', bg: 'bg-sky-100', bar: 'bg-sky-500', searches: ['vacina', 'imuniza', 'polio', 'penta'] }
                 ]
             },
             mulher: {
@@ -269,88 +295,6 @@
         document.addEventListener('DOMContentLoaded', () => {
             attemptAutoLoad();
 
-            // Listener para upload manual
-            document.getElementById('csv-file').addEventListener('change', function(e) {
-                const file = e.target.files[0];
-                if (!file) return;
-                
-                const reader = new FileReader();
-                reader.onload = function(event) {
-                    processCSVData(event.target.result);
-                };
-                reader.readAsText(file);
-            });
-        });
-
-        function setCondition(cond) {
-            if (currentCondition === cond) return;
-            currentCondition = cond;
-            
-            // Atualiza UI das abas
-            Object.keys(CONDITIONS).forEach(k => {
-                const btn = document.getElementById('tab-' + k);
-                if (k === cond) {
-                    btn.className = "bg-white text-blue-600 px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-100";
-                } else {
-                    btn.className = "bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100";
-                }
-            });
-            
-            // Atualiza Label Total
-            document.getElementById('label-total-card').innerText = 'Total de ' + CONDITIONS[cond].label;
-            
-            // Reseta input de arquivo
-            document.getElementById('csv-file').value = '';
-            
-            // Verifica se já temos dados salvos no cache para esta aba
-            if (tabCache[currentCondition]) {
-                document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-check-circle text-green-300 mr-1"></i> Dados Recuperados da Memória (' + CONDITIONS[currentCondition].label + ')';
-                document.getElementById('upload-section').classList.add('hidden');
-                document.getElementById('loading-state').classList.add('hidden');
-                updateUI(tabCache[currentCondition]);
-            } else {
-                document.getElementById('dashboard-content').classList.add('hidden');
-                document.getElementById('upload-section').classList.add('hidden');
-                document.getElementById('loading-state').classList.remove('hidden');
-                attemptAutoLoad();
-            }
-        }
-
-        // Tenta buscar o arquivo no ambiente
-        async function attemptAutoLoad() {
-            const targetFile = CONDITIONS[currentCondition].file;
-            document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Buscando dados...';
-            try {
-                const response = await fetch(targetFile);
-                if (!response.ok) throw new Error('Arquivo não encontrado no diretório virtual.');
-                
-                const buffer = await response.arrayBuffer();
-                
-                // Tenta decodificar primeiro como utf-8, e se falhar ou contiver caracteres inválidos, usa iso-8859-1
-                let csvText = '';
-                try {
-                    const decoderUtf8 = new TextDecoder('utf-8', { fatal: true });
-                    csvText = decoderUtf8.decode(buffer);
-                } catch (e) {
-                    const decoderIso = new TextDecoder('iso-8859-1');
-                    csvText = decoderIso.decode(buffer);
-                }
-                
-                document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-check-circle text-green-300 mr-1"></i> Dados Carregados (' + CONDITIONS[currentCondition].label + ')';
-                processCSVData(csvText);
-            } catch (error) {
-                console.warn("Auto-load falhou. Exibindo opção de upload manual.", error);
-                document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-circle-exclamation text-yellow-300 mr-1"></i> Aguardando arquivo';
-                document.getElementById('upload-section').classList.remove('hidden');
-                document.getElementById('loading-state').classList.add('hidden');
-                
-                document.getElementById('upload-filename-msg').innerText = targetFile;
-            }
-        }
-
-        document.addEventListener('DOMContentLoaded', () => {
-            attemptAutoLoad();
-
             document.getElementById('csv-file').addEventListener('change', function(e) {
                 const file = e.target.files[0];
                 if (!file) return;
@@ -363,7 +307,7 @@
                     try {
                         const decoderUtf8 = new TextDecoder('utf-8', { fatal: true });
                         csvText = decoderUtf8.decode(buffer);
-                    } catch (e) {
+                    } catch (err) {
                         const decoderIso = new TextDecoder('iso-8859-1');
                         csvText = decoderIso.decode(buffer);
                     }
@@ -371,6 +315,65 @@
                 };
             });
         });
+
+        function setCondition(cond) {
+            if (currentCondition === cond) return;
+            currentCondition = cond;
+            
+            // Atualiza visual dos botões das abas superiores
+            Object.keys(CONDITIONS).forEach(k => {
+                const btn = document.getElementById('tab-' + k);
+                if (k === cond) {
+                    btn.className = "bg-white text-blue-600 px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-100";
+                } else {
+                    btn.className = "bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100";
+                }
+            });
+            
+            document.getElementById('label-total-card').innerText = 'Total de ' + CONDITIONS[cond].label;
+            document.getElementById('csv-file').value = '';
+            
+            // Resgata dados do cache se já importados anteriormente
+            if (tabCache[currentCondition]) {
+                document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-check-circle text-emerald-300 mr-1"></i> Dados Em Memória (' + CONDITIONS[currentCondition].label + ')';
+                document.getElementById('upload-section').classList.add('hidden');
+                document.getElementById('loading-state').classList.add('hidden');
+                updateUI(tabCache[currentCondition]);
+            } else {
+                document.getElementById('dashboard-content').classList.add('hidden');
+                document.getElementById('upload-section').classList.add('hidden');
+                document.getElementById('loading-state').classList.remove('hidden');
+                attemptAutoLoad();
+            }
+        }
+
+        async function attemptAutoLoad() {
+            const targetFile = CONDITIONS[currentCondition].file;
+            document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Buscando dados...';
+            try {
+                const response = await fetch(targetFile);
+                if (!response.ok) throw new Error('Arquivo não encontrado no diretório virtual.');
+                
+                const buffer = await response.arrayBuffer();
+                
+                let csvText = '';
+                try {
+                    const decoderUtf8 = new TextDecoder('utf-8', { fatal: true });
+                    csvText = decoderUtf8.decode(buffer);
+                } catch (e) {
+                    const decoderIso = new TextDecoder('iso-8859-1');
+                    csvText = decoderIso.decode(buffer);
+                }
+                
+                document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-check-circle text-emerald-300 mr-1"></i> Dados Carregados (' + CONDITIONS[currentCondition].label + ')';
+                processCSVData(csvText);
+            } catch (error) {
+                console.warn("Auto-load não encontrou o arquivo local.", error);
+                document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-circle-exclamation text-amber-300 mr-1"></i> Aguardando arquivo CSV';
+                document.getElementById('upload-section').classList.remove('hidden');
+                document.getElementById('loading-state').classList.add('hidden');
+            }
+        }
 
         function processCSVData(csvText) {
             document.getElementById('loading-state').classList.remove('hidden');
@@ -395,7 +398,6 @@
                 },
                 error: function(err) {
                     console.error("Erro ao fazer parse do CSV:", err);
-                    alert("Erro ao ler o arquivo CSV.");
                 }
             });
         }
@@ -406,16 +408,13 @@
             for (let i = 0; i < Math.min(data.length, 50); i++) {
                 if (!data[i]) continue;
                 const rowStr = data[i].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
-                if (rowStr.includes("idade") && rowStr.includes("sexo")) {
+                if (rowStr.includes("idade") && (rowStr.includes("sexo") || rowStr.includes("nascimento"))) {
                     headerIdx = i;
                     break;
                 }
             }
 
-            if (headerIdx >= data.length) {
-                alert("Não foi possível encontrar as colunas de cabeçalho.");
-                return;
-            }
+            if (headerIdx >= data.length) return;
 
             const fields = data[headerIdx];
             const rows = data.slice(headerIdx + 1);
@@ -502,7 +501,7 @@
                     if (year < 100) year += 2000;
                     
                     const dateObj = new Date(year, parseInt(parts[2], 10) - 1, parseInt(parts[1], 10));
-                    const refDate = new Date(2026, 10, 5);
+                    const refDate = new Date();
                     
                     const diffTime = Math.abs(refDate - dateObj);
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
@@ -523,14 +522,12 @@
                 const micro = colMicro !== -1 && row[colMicro] ? String(row[colMicro]).trim() : "Sem Micro";
                 const nascimento = colNascimento !== -1 && row[colNascimento] ? String(row[colNascimento]).trim() : "-";
                 
-                // Constrói o endereço unificado em MAIÚSCULAS combinando Rua, Número e Bairro
                 let enderecoParts = [];
-                if (colRua !== -1 && row[colRua]) enderecoParts.push(String(row[colRua]).trim());
-                if (colNum !== -1 && row[colNum]) enderecoParts.push(`Nº ${String(row[colNum]).trim()}`);
-                if (colBairro !== -1 && row[colBairro]) enderecoParts.push(String(row[colBairro]).trim());
+                if (colRua !== -1 && row[colRua] && String(row[colRua]).trim() !== '-') enderecoParts.push(String(row[colRua]).trim());
+                if (colNum !== -1 && row[colNum] && String(row[colNum]).trim() !== '-') enderecoParts.push(`Nº ${String(row[colNum]).trim()}`);
+                if (colBairro !== -1 && row[colBairro] && String(row[colBairro]).trim() !== '-') enderecoParts.push(String(row[colBairro]).trim());
                 
                 const endereco = enderecoParts.length > 0 ? enderecoParts.join(', ').toUpperCase() : "-";
-
                 let idadeTexto = "-";
                 
                 stats.microareas[micro] = (stats.microareas[micro] || 0) + 1;
@@ -568,16 +565,16 @@
                     }
                 }
 
+                // 1ª Passagem: Métricas padrão
                 currentMetrics.forEach(m => {
+                    if (m.customCheck) return;
                     let hasMet = false;
                     
                     if (m.checkSim && m.forceCols) {
                         m.forceCols.forEach(c => {
                             if (row.length > c) {
                                 const val = String(row[c]).trim().toUpperCase();
-                                if (val === 'SIM') {
-                                    hasMet = true;
-                                }
+                                if (val === 'SIM') hasMet = true;
                             }
                         });
                     } else {
@@ -585,44 +582,45 @@
                     }
                     
                     pMetrics[m.id] = hasMet;
-                    if (hasMet) {
-                        stats.metricCounts[m.id]++;
-                    }
                 });
                 
                 stats.patients.push({ nome, micro, nascimento, endereco, idadeTexto, metrics: pMetrics });
             });
 
-            // Salva no cache da aba atual
-            tabCache[currentCondition] = stats;
+            // 2ª Passagem: Regras Customizadas (Pés GOVBR e Total)
+            stats.patients.forEach(p => {
+                currentMetrics.forEach(m => {
+                    if (m.customCheck) {
+                        p.metrics[m.id] = m.customCheck(p);
+                    }
+                });
 
+                currentMetrics.forEach(m => {
+                    if (p.metrics[m.id]) {
+                        stats.metricCounts[m.id]++;
+                    }
+                });
+            });
+
+            tabCache[currentCondition] = stats;
             updateUI(stats);
         }
 
         function updateUI(stats) {
-            // Mostrar o painel
             document.getElementById('loading-state').classList.add('hidden');
             document.getElementById('dashboard-content').classList.remove('hidden');
 
-            // Atualizar KPIs
             document.getElementById('kpi-total').innerText = stats.total;
-            
-            // Remove as métricas dinâmicas antigas
             document.querySelectorAll('.dynamic-metric').forEach(el => el.remove());
             
             const kpiContainer = document.getElementById('kpi-container');
             const currentMetrics = CONDITIONS[currentCondition].metrics;
             const visibleMetrics = currentMetrics.filter(m => !m.hidden);
             
-            // Ajusta o grid dependendo do número de cards (1 Total + N Métricas visíveis)
-            if (visibleMetrics.length === 1) {
-                kpiContainer.className = "grid grid-cols-1 md:grid-cols-2 gap-6";
-            } else {
-                kpiContainer.className = "grid grid-cols-1 md:grid-cols-3 gap-6";
-            }
+            kpiContainer.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4";
 
             visibleMetrics.forEach(m => {
-                const count = stats.metricCounts[m.id];
+                const count = stats.metricCounts[m.id] || 0;
                 const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
                 
                 const cardHtml = `
@@ -631,8 +629,8 @@
                         <div>
                             <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">${m.name}</p>
                             <div class="flex items-baseline space-x-2 mt-2">
-                                <h2 class="text-4xl font-extrabold text-slate-800">${count}</h2>
-                                <span class="text-lg font-bold ${m.text}">(${pct}%)</span>
+                                <h2 class="text-3xl font-extrabold text-slate-800">${count}</h2>
+                                <span class="text-sm font-bold ${m.text}">(${pct}%)</span>
                             </div>
                         </div>
                         <div class="${m.bg} p-4 rounded-full ${m.text}">
@@ -648,11 +646,10 @@
                 
                 setTimeout(() => {
                     const bar = document.getElementById(`bar-${m.id}`);
-                    if(bar) bar.style.width = `${pct}%`;
+                    if (bar) bar.style.width = `${pct}%`;
                 }, 100);
             });
 
-            // Atualizar Tabela Nominal de Boas Práticas
             const tabsContainer = document.getElementById('nominal-tabs');
             tabsContainer.innerHTML = '';
             
@@ -676,7 +673,7 @@
             currentMetrics.forEach(m => createTab(m.id, `Pendência: ${m.shortName || m.name}`, false));
 
             const renderNominalTable = (tabId) => {
-                activeTabId = tabId; // Atualiza a aba nominal ativa
+                activeTabId = tabId;
                 const content = document.getElementById('nominal-content');
                 const counterMsg = document.getElementById('table-counter-msg');
                 let html = '<table id="nominal-data-table" class="min-w-full text-left text-sm whitespace-nowrap"><thead class="uppercase tracking-wider text-slate-600 font-bold text-xs sticky top-0 bg-slate-100 z-20 shadow-sm"><tr>';
@@ -700,7 +697,7 @@
                             <td class="px-4 py-3 sticky left-0 z-10 ${bg} shadow-[1px_0_0_0_#e2e8f0] font-semibold text-slate-700">${p.nome}</td>
                             <td class="px-4 py-3">${p.nascimento}</td>
                             <td class="px-4 py-3">${p.idadeTexto}</td>
-                            <td class="px-4 py-3">${p.endereco}</td>
+                            <td class="px-4 py-3 text-xs">${p.endereco}</td>
                             <td class="px-4 py-3">${p.micro}</td>`;
                         currentMetrics.forEach(m => {
                             const icon = p.metrics[m.id] ? '<i class="fa-solid fa-check text-emerald-500" title="Atingido"></i>' : '<i class="fa-solid fa-xmark text-rose-500" title="Pendente"></i>';
@@ -731,7 +728,7 @@
                                 <td class="px-4 py-3 sticky left-0 z-10 ${bg} shadow-[1px_0_0_0_#e2e8f0] font-semibold text-slate-700">${p.nome}</td>
                                 <td class="px-4 py-3">${p.nascimento}</td>
                                 <td class="px-4 py-3">${p.idadeTexto}</td>
-                                <td class="px-4 py-3">${p.endereco}</td>
+                                <td class="px-4 py-3 text-xs">${p.endereco}</td>
                                 <td class="px-4 py-3">${p.micro}</td>
                                 <td class="px-4 py-2 text-center"><span class="bg-rose-100 text-rose-700 px-2 py-1 rounded font-bold text-xs border border-rose-200 shadow-sm">Pendente</span></td>
                             </tr>`;
@@ -743,10 +740,9 @@
                 content.innerHTML = html;
             };
             
-            // Iniciar com a matriz
             renderNominalTable('geral');
 
-            // Destruir gráficos antigos se existirem
+            // Destruir gráficos anteriores
             Object.values(charts).forEach(chart => chart.destroy());
 
             // 1. Gráfico de Faixa Etária
@@ -772,7 +768,7 @@
                 }
             });
 
-            // 2. Gráfico de Sexo
+            // 2. Gráfico de Sexo (Oculto para Gestantes e Saúde da Mulher)
             if (currentCondition === 'gestantes' || currentCondition === 'mulher') {
                 document.getElementById('card-sexo').classList.add('hidden');
                 document.getElementById('charts-container').classList.replace('lg:grid-cols-3', 'lg:grid-cols-2');
@@ -800,10 +796,8 @@
                 });
             }
 
-            // 3. Gráfico de Microárea (ordenado)
-            const microareasOrdenadas = Object.entries(stats.microareas)
-                .sort((a, b) => b[1] - a[1]); // Ordem decrescente
-            
+            // 3. Gráfico de Microárea
+            const microareasOrdenadas = Object.entries(stats.microareas).sort((a, b) => b[1] - a[1]);
             const labelsMicro = microareasOrdenadas.map(m => m[0]);
             const dataMicro = microareasOrdenadas.map(m => m[1]);
 
@@ -815,7 +809,7 @@
                     datasets: [{
                         label: 'Pacientes por Micro',
                         data: dataMicro,
-                        backgroundColor: 'rgba(16, 185, 129, 0.7)', // Emerald
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
                         borderColor: 'rgb(16, 185, 129)',
                         borderWidth: 1,
                         borderRadius: 4
@@ -826,25 +820,17 @@
                     maintainAspectRatio: false,
                     plugins: { legend: { display: false } },
                     scales: { 
-                        x: { 
-                            ticks: { maxRotation: 45, minRotation: 45 }
-                        },
-                        y: { 
-                            beginAtZero: true, 
-                            grid: { borderDash: [4, 4] } 
-                        } 
+                        x: { ticks: { maxRotation: 45, minRotation: 45 } },
+                        y: { beginAtZero: true, grid: { borderDash: [4, 4] } } 
                     }
                 }
             });
         }
 
-        // Função para exportar a tabela nominal ativa em CSV ou XLSX
+        // Exportação para CSV / XLSX
         function exportTable(format) {
             const table = document.getElementById('nominal-data-table');
-            if (!table) {
-                alert('Nenhuma tabela disponível para exportação.');
-                return;
-            }
+            if (!table) return;
 
             const conditionName = CONDITIONS[currentCondition].label.replace(/[^a-zA-Z0-9]/g, '_');
             const tabName = activeTabId === 'geral' ? 'Matriz_Geral' : `Pendencia_${activeTabId}`;
@@ -857,7 +843,6 @@
                     let cols = row.querySelectorAll('th, td');
                     let data = [];
                     cols.forEach(col => {
-                        // Limpa o texto ou substitui ícones por texto de status
                         let text = col.innerText.trim();
                         if (col.querySelector('.fa-check')) text = 'ATINGIDO';
                         if (col.querySelector('.fa-xmark')) text = 'PENDENTE';
@@ -876,7 +861,6 @@
                 link.click();
                 document.body.removeChild(link);
             } else if (format === 'xlsx') {
-                // Prepara matriz de dados limpa para o SheetJS
                 let excelData = [];
                 const rows = table.querySelectorAll('tr');
                 rows.forEach(row => {
