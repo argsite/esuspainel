@@ -700,13 +700,27 @@
                 const count = stats.metricCounts[m.id] || 0;
                 const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
                 
-                let pctSubtextHtml = m.isGovbrFixed 
-                    ? `<span class="text-xs font-semibold text-slate-400"><i class="fa-solid fa-lock mr-1"></i>Sistema antigo</span>`
-                    : `<span class="text-lg font-bold ${m.text}">(${pct}%)</span>`;
+                let pctSubtextHtml = '';
+                if (m.isGovbrFixed) {
+                    pctSubtextHtml = `<span class="text-xs font-semibold text-slate-400"><i class="fa-solid fa-lock mr-1"></i>Sistema antigo</span>`;
+                } else if (m.id === 'pes_ambos') {
+                    pctSubtextHtml = `<span class="text-xs font-semibold text-purple-600">Pacientes em comum</span>`;
+                } else if (m.id === 'pes_total') {
+                    pctSubtextHtml = `<span class="text-xs font-semibold text-blue-600">Total consolidado</span>`;
+                } else {
+                    pctSubtextHtml = `<span class="text-lg font-bold ${m.text}">(${pct}%)</span>`;
+                }
 
-                let progressBarHtml = m.isGovbrFixed
-                    ? `<div class="mt-4 text-xs font-medium text-slate-400 bg-slate-100 py-1 px-2.5 rounded text-center">79 avaliações do sistema anterior</div>`
-                    : `<div class="w-full bg-slate-200 rounded-full h-2 mt-4"><div class="${m.bar} h-2 rounded-full transition-all duration-1000" style="width: 0%" id="bar-${m.id}"></div></div>`;
+                let progressBarHtml = '';
+                if (m.isGovbrFixed) {
+                    progressBarHtml = `<div class="mt-4 text-xs font-medium text-slate-400 bg-slate-100 py-1 px-2.5 rounded text-center">79 avaliações do sistema anterior</div>`;
+                } else if (m.id === 'pes_ambos') {
+                    progressBarHtml = `<div class="mt-4 text-xs font-medium text-purple-600 bg-purple-50 py-1 px-2.5 rounded text-center">Registros unificados GOVBR + PEC</div>`;
+                } else if (m.id === 'pes_total') {
+                    progressBarHtml = `<div class="mt-4 text-xs font-medium text-blue-600 bg-blue-50 py-1 px-2.5 rounded text-center">Soma total sem duplicações</div>`;
+                } else {
+                    progressBarHtml = `<div class="w-full bg-slate-200 rounded-full h-2 mt-4"><div class="${m.bar} h-2 rounded-full transition-all duration-1000" style="width: 0%" id="bar-${m.id}"></div></div>`;
+                }
 
                 const cardHtml = `
                 <div class="dynamic-metric glass-card rounded-2xl p-6 border-l-4 ${m.border}">
@@ -727,7 +741,7 @@
                 
                 kpiContainer.insertAdjacentHTML('beforeend', cardHtml);
                 
-                if (!m.isGovbrFixed) {
+                if (!m.isGovbrFixed && m.id !== 'pes_ambos' && m.id !== 'pes_total') {
                     setTimeout(() => {
                         const bar = document.getElementById(`bar-${m.id}`);
                         if(bar) bar.style.width = `${pct}%`;
