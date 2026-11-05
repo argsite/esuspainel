@@ -76,7 +76,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-amber-800 font-bold text-lg"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Importar relatório do e-SUS PEC</h3>
-                    <p class="text-amber-700 text-sm mt-1">Nenhum arquivo local correspondente foi encontrado para esta aba. Carregue o arquivo CSV correspondente para gerar a análise nominal.</p>
+                    <p class="text-amber-700 text-sm mt-1">Carregue o arquivo CSV exportado do PEC para gerar o painel desta aba. A base do GOVBR é consultada automaticamente de forma nativa.</p>
                 </div>
                 <div>
                     <input type="file" id="csv-file" accept=".csv" class="hidden">
@@ -186,8 +186,11 @@
         Chart.defaults.plugins.tooltip.padding = 10;
         Chart.defaults.plugins.tooltip.cornerRadius = 8;
 
-        // Lista oficial dos 79 pacientes avaliados previamente no GOVBR para avaliação de pés
-        const govbrFootEvaluatedNames = [
+        // Função de normalização de nomes para comparação perfeita sem divergências de acentuação ou espaços
+        const normalizeName = str => str ? String(str).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim() : '';
+
+        // Base nativa pré-carregada com os 79 pacientes da planilha GOVBR (Relatorio_C4__Diabetes_GOV.xlsx)
+        let govbrFootEvaluatedNames = [
             "ADRIANA APARECIDA DE MORAIS", "ANA MARIA DE OLIVEIRA", "ANTONIO CARLOS DOS SANTOS", "APARECIDA DONIZETE DA SILVA", 
             "BENEDITO APARECIDO PIRES", "CARLOS ALBERTO FERREIRA", "CARMEM LUCIA SILVEIRA", "CELIA REGINA DE SOUZA", 
             "CLAUDIA REGINA BUENO", "CLOVIS ROBERTO DA SILVA", "CRISTINA APARECIDA ROCHA", "DALVA MARIA DE LIMA", 
@@ -209,6 +212,56 @@
             "ROSANGELA APARECIDA DE SOUZA", "ROSEMEIRE APARECIDA FERREIRA", "SANDRA APARECIDA DA SILVA", "SILVIA APARECIDA DOS SANTOS", 
             "SONIA APARECIDA DE SOUZA", "TERESINHA APARECIDA FERREIRA", "VALDEMAR APARECIDO DA SILVA"
         ];
+
+        // Busca e faz o parse dinâmico da planilha Excel GOVBR presente na raiz para mesclar eventuais novas entradas
+        async function loadGovbrExcel() {
+            const filesToTry = ['Relatorio_C4__Diabetes_GOV_2.xlsx', 'Relatorio_C4__Diabetes_GOV.xlsx'];
+            for (const filename of filesToTry) {
+                try {
+                    const response = await fetch(filename);
+                    if (!response.ok) continue;
+                    const buffer = await response.arrayBuffer();
+                    parseGovbrExcelBuffer(buffer, filename);
+                    console.log(`Base GOVBR consultada na raiz a partir de ${filename}`);
+                    break;
+                } catch (e) {
+                    console.warn(`Tentativa de leitura local de ${filename} ignorada (usando base nativa):`, e);
+                }
+            }
+        }
+
+        // Processa o buffer do arquivo Excel XLSX via SheetJS e mescla novos nomes dos pacientes
+        function parseGovbrExcelBuffer(buffer, filename) {
+            try {
+                const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
+                workbook.SheetNames.forEach(sheetName => {
+                    const sheet = workbook.Sheets[sheetName];
+                    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    jsonData.forEach(row => {
+                        if (!row || !row.length) return;
+                        row.forEach(cell => {
+                            if (!cell) return;
+                            const val = String(cell).trim();
+                            const norm = normalizeName(val);
+                            if (norm.length > 3 && 
+                                !norm.includes('NOME') && 
+                                !norm.includes('CPF') && 
+                                !norm.includes('CNS') && 
+                                !norm.includes('RELATORIO') && 
+                                !norm.includes('DIABETES') && 
+                                !norm.includes('GOV') && 
+                                !/^\d+$/.test(norm)) {
+                                if (!govbrFootEvaluatedNames.includes(norm)) {
+                                    govbrFootEvaluatedNames.push(norm);
+                                }
+                            }
+                        });
+                    });
+                });
+            } catch (err) {
+                console.error("Erro ao ler a planilha Excel do GOVBR:", err);
+            }
+        }
 
         let charts = {}; 
         let currentCondition = 'infantil';
@@ -257,7 +310,7 @@
                     ...COMMON_METRICS,
                     { id: 'hba1c', shortName: 'Solic. HbA1c', name: 'HBA1C Solicitada', icon: 'fa-vial', border: 'border-teal-500', text: 'text-teal-600', bg: 'bg-teal-100', bar: 'bg-teal-500', searches: ['hemoglobina', 'glicada', 'hba1c'] },
                     { id: 'pes_pec', shortName: 'Aval. Pés (PEC)', name: 'Avaliação Pés (PEC)', icon: 'fa-shoe-prints', border: 'border-indigo-500', text: 'text-indigo-600', bg: 'bg-indigo-100', bar: 'bg-indigo-500', searches: ['pe', 'pes'], exclude: 'peso', forceCol: 39 },
-                    { id: 'pes_govbr', shortName: 'Aval. Pés (GOVBR)', name: 'Avaliação Pés (GOVBR)', icon: 'fa-database', border: 'border-cyan-500', text: 'text-cyan-600', bg: 'bg-cyan-100', bar: 'bg-cyan-500', customCheck: function(p) { return govbrFootEvaluatedNames.includes(p.nome.toUpperCase()); } },
+                    { id: 'pes_govbr', shortName: 'Aval. Pés (GOVBR)', name: 'Avaliação Pés (GOVBR)', icon: 'fa-database', border: 'border-cyan-500', text: 'text-cyan-600', bg: 'bg-cyan-100', bar: 'bg-cyan-500', customCheck: function(p) { const pNorm = normalizeName(p.nome); return govbrFootEvaluatedNames.some(name => normalizeName(name) === pNorm); } },
                     { id: 'pes_total', shortName: 'Aval. Pés Total', name: 'Avaliação Pés Total', icon: 'fa-square-check', border: 'border-blue-600', text: 'text-blue-700', bg: 'bg-blue-100', bar: 'bg-blue-600', customCheck: function(p) { return !!(p.metrics['pes_pec'] || p.metrics['pes_govbr']); } }
                 ]
             },
@@ -293,7 +346,10 @@
 
         // Inicialização
         document.addEventListener('DOMContentLoaded', () => {
-            attemptAutoLoad();
+            // Tenta consultar arquivo na raiz em segundo plano e inicia o carregamento automático
+            loadGovbrExcel().finally(() => {
+                attemptAutoLoad();
+            });
 
             document.getElementById('csv-file').addEventListener('change', function(e) {
                 const file = e.target.files[0];
