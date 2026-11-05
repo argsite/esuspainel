@@ -218,12 +218,24 @@
         // Normalização de nomes (remove acentos, pontuação e múltiplos espaços)
         function normalizeName(str) {
             if (!str) return "";
-            return str
+            return sanitizeText(str)
                 .toUpperCase()
                 .normalize("NFD")
                 .replace(/[\u0300-\u036f]/g, "")
                 .replace(/[^A-Z0-9\s]/g, "")
                 .replace(/\s+/g, " ")
+                .trim();
+        }
+
+        // Função para corrigir caracteres mal formatados (como ) provenientes de CSVs em ISO-8859-1 / ANSI
+        function sanitizeText(str) {
+            if (typeof str !== 'string') return str;
+            return str
+                .replace(/[\uFFFD\u007F-\u009F]/g, "") // Remove caractere de substituição genérico
+                .replace(/Ã§/g, "ç").replace(/Ã‡/g, "Ç")
+                .replace(/Ã£/g, "ã").replace(/Ã³/g, "ó").replace(/Ã¡/g, "á").replace(/Ã©/g, "é").replace(/Ã­/g, "í")
+                .replace(/Ãª/g, "ê").replace(/Ã´/g, "ô").replace(/Ãº/g, "ú").replace(/Ã /g, "à")
+                .replace(/Ã/g, "A").replace(/Â/g, "")
                 .trim();
         }
 
@@ -280,6 +292,7 @@
                     { id: 'hba1c', shortName: 'Solic. HbA1c', name: 'HBA1C Solicitada', icon: 'fa-vial', border: 'border-teal-500', text: 'text-teal-600', bg: 'bg-teal-100', bar: 'bg-teal-500', searches: ['hemoglobina', 'glicada', 'hba1c'] },
                     { id: 'pes', shortName: 'Aval. Pés (PEC)', name: 'Avaliação Pés (PEC)', icon: 'fa-shoe-prints', border: 'border-indigo-500', text: 'text-indigo-600', bg: 'bg-indigo-100', bar: 'bg-indigo-500', searches: ['pe', 'pes'], exclude: 'peso', forceCol: 39 },
                     { id: 'pes_govbr', shortName: 'Aval. Pés (GOVBR)', name: 'Avaliação Pés (GOVBR)', icon: 'fa-database', border: 'border-cyan-500', text: 'text-cyan-600', bg: 'bg-cyan-100', bar: 'bg-cyan-500', isGovbrFixed: true, hidePendingTab: true },
+                    { id: 'pes_ambos', shortName: 'Pés GOVBR + PEC', name: 'Avaliação Pés GOVBR + PEC', icon: 'fa-people-arrows', border: 'border-purple-500', text: 'text-purple-700', bg: 'bg-purple-100', bar: 'bg-purple-600', isFeetAmbos: true, hidePendingTab: true },
                     { id: 'pes_total', shortName: 'Aval. Pés Total', name: 'Avaliação Pés Total', icon: 'fa-square-check', border: 'border-blue-600', text: 'text-blue-700', bg: 'bg-blue-100', bar: 'bg-blue-600', isFeetTotal: true }
                 ]
             },
@@ -509,7 +522,7 @@
 
             fields.forEach((f, index) => {
                 if (!f) return;
-                const norm = normalize(f);
+                const norm = normalize(sanitizeText(f));
                 if (norm.includes("nome") || norm.includes("cidadao") || norm.includes("paciente")) colNome = index;
                 if (norm === "microarea" || norm === "microarea / area" || norm.includes("micro")) colMicro = index;
                 if (norm === "idade" || norm === "idade (anos)") colIdade = index;
@@ -552,7 +565,7 @@
                 if (val.toUpperCase() === 'SIM') return true;
                 if (/^\d+$/.test(val)) return maxDays === undefined ? true : parseInt(val, 10) <= maxDays;
                 if (/\d{2}\/\d{2}\/\d{2,4}/.test(val)) {
-                    if (maxDays === undefined) return true;
+                    if (!maxDays) return true;
                     const parts = val.match(/(\d{2})\/(\d{2})\/(\d{2,4})/);
                     let year = parseInt(parts[3], 10);
                     if (year < 100) year += 2000;
@@ -625,11 +638,14 @@
 
                 currentMetrics.forEach(m => {
                     let hasMet = false;
+                    const isPecFoot = metricCols['pes'] !== -1 && hasDateOrRecent(row[metricCols['pes']], m.maxDays);
+                    const isGovbrFoot = !!govbrDetailsMap[normNome];
+
                     if (m.isGovbrFixed) {
-                        hasMet = !!govbrDetailsMap[normNome];
+                        hasMet = isGovbrFoot;
+                    } else if (m.isFeetAmbos) {
+                        hasMet = isPecFoot && isGovbrFoot;
                     } else if (m.isFeetTotal) {
-                        const isPecFoot = metricCols['pes'] !== -1 && hasDateOrRecent(row[metricCols['pes']], m.maxDays);
-                        const isGovbrFoot = !!govbrDetailsMap[normNome];
                         hasMet = isPecFoot || isGovbrFoot;
                     } else if (m.checkSim && m.forceCols) {
                         m.forceCols.forEach(c => {
@@ -640,7 +656,7 @@
                     }
                     
                     pMetrics[m.id] = hasMet;
-                    if (hasMet && !m.isGovbrFixed && !m.isFeetTotal) {
+                    if (hasMet && !m.isGovbrFixed && !m.isFeetAmbos && !m.isFeetTotal) {
                         stats.metricCounts[m.id]++;
                     }
                 });
@@ -656,6 +672,7 @@
 
             if (currentCondition === 'diabeticos') {
                 stats.metricCounts['pes_govbr'] = 79;
+                stats.metricCounts['pes_ambos'] = pecEvaluatedGovbrOverlapCount;
                 const pecEvaluatedCount = stats.metricCounts['pes'] || 0;
                 stats.metricCounts['pes_total'] = 79 + pecEvaluatedCount - pecEvaluatedGovbrOverlapCount;
             }
