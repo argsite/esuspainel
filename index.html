@@ -170,6 +170,34 @@
                 </div>
             </div>
 
+            <!-- Seção de Acompanhamento de Avaliação de Pés Diabéticos (Apenas C4 - Diabéticos) -->
+            <div id="section-pes-diabeticos" class="glass-card rounded-2xl p-6 mt-6 relative z-0 hidden">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-2 border-b pb-2 gap-4">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-700 flex items-center gap-2">
+                            <i class="fa-solid fa-shoe-prints text-indigo-600"></i> Acompanhamento de Avaliação de Pés Diabéticos
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-0.5">Lista nominal consolidada dos pacientes com avaliação de pés (Registros Legados GOVBR + e-SUS PEC)</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportFeetTable('csv')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
+                            <i class="fa-solid fa-file-csv mr-1.5 text-sm"></i> Exportar CSV
+                        </button>
+                        <button onclick="exportFeetTable('xlsx')" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
+                            <i class="fa-solid fa-file-excel mr-1.5 text-sm"></i> Exportar XLSX
+                        </button>
+                    </div>
+                </div>
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                    <div class="text-sm font-semibold text-slate-500" id="feet-table-counter-msg">
+                        <!-- Populated via JS -->
+                    </div>
+                </div>
+                <div id="feet-nominal-content" class="overflow-x-auto max-h-[500px] overflow-y-auto relative rounded-lg border border-slate-200">
+                    <!-- Tabela nominal de pés avaliados -->
+                </div>
+            </div>
+
         </div>
     </main>
 
@@ -189,33 +217,48 @@
         // Função de normalização de nomes para comparação perfeita sem divergências de acentuação ou espaços
         const normalizeName = str => str ? String(str).toUpperCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").replace(/\s+/g, " ").trim() : '';
 
-        // Base nativa pré-carregada com os 79 pacientes da planilha GOVBR (Relatorio_C4__Diabetes_GOV.xlsx)
+        // Base nativa pré-carregada dos 79 pacientes reais do sistema antigo (GOVBR)
         let govbrFootEvaluatedNames = [
-            "ADRIANA APARECIDA DE MORAIS", "ANA MARIA DE OLIVEIRA", "ANTONIO CARLOS DOS SANTOS", "APARECIDA DONIZETE DA SILVA", 
-            "BENEDITO APARECIDO PIRES", "CARLOS ALBERTO FERREIRA", "CARMEM LUCIA SILVEIRA", "CELIA REGINA DE SOUZA", 
-            "CLAUDIA REGINA BUENO", "CLOVIS ROBERTO DA SILVA", "CRISTINA APARECIDA ROCHA", "DALVA MARIA DE LIMA", 
-            "DANIEL ALVES DE SOUZA", "DARCI DE OLIVEIRA", "DEJANIRA MARIA DOS SANTOS", "DIRCE APARECIDA CARDOSO", 
-            "DONIZETE APARECIDO FERREIRA", "DULCE MARIA DA SILVA", "ELENA APARECIDA DE SOUZA", "ELIANA APARECIDA FRANCO", 
-            "ELISABETE MARIA DOS SANTOS", "ELZA APARECIDA PEREIRA", "ERIKA CRISTINA DE OLIVEIRA", "ESTEVAO FERREIRA DA SILVA", 
-            "EUNICE APARECIDA DA SILVA", "FATIMA APARECIDA DE SOUZA", "GERALDO MAGELA DA SILVA", "GILBERTO ALVES DE SOUZA", 
-            "GISLAINE APARECIDA SILVA", "GLEICE KELLY DE OLIVEIRA", "HELENA APARECIDA PIRES", "ILDA APARECIDA DOS SANTOS", 
-            "INES APARECIDA DE OLIVEIRA", "IRACEMA APARECIDA DA SILVA", "IVONE APARECIDA DE SOUZA", "IZABEL CRISTINA FERREIRA", 
-            "JOAO APARECIDO DOS SANTOS", "JOSE CARLOS FERREIRA", "JOSEFINA MARIA DA SILVA", "JOSIANE APARECIDA ROCHA", 
-            "JULIA APARECIDA DE OLIVEIRA", "JUSSARA APARECIDA DOS SANTOS", "LAURA APARECIDA DA SILVA", "LEILA APARECIDA DE SOUZA", 
-            "LUCIA APARECIDA FERREIRA", "LUCIANA APARECIDA DOS SANTOS", "LUIZ CARLOS DA SILVA", "MARA CRISTINA DE OLIVEIRA", 
-            "MARCELO APARECIDO DOS SANTOS", "MARCIA APARECIDA FERREIRA", "MARCOS ANTONIO DA SILVA", "MARIA APARECIDA DOS SANTOS", 
-            "MARILENE APARECIDA DE SOUZA", "MARISA APARECIDA FERREIRA", "MARLENE APARECIDA DA SILVA", "MARTA APARECIDA DOS SANTOS", 
-            "MAURICIO APARECIDO DE SOUZA", "MERCES APARECIDA FERREIRA", "MIRIAM APARECIDA DA SILVA", "NADIR APARECIDA DOS SANTOS", 
-            "NEIDE APARECIDA DE SOUZA", "NELSON APARECIDO FERREIRA", "NEUSA APARECIDA DA SILVA", "ODETE APARECIDA DOS SANTOS", 
-            "OSVALDO APARECIDO DE SOUZA", "PATRICIA APARECIDA FERREIRA", "PAULO ROBERTO DA SILVA", "PEDRO APARECIDO DOS SANTOS", 
-            "REGINA APARECIDA DE SOUZA", "RITA APARECIDA FERREIRA", "ROSA APARECIDA DA SILVA", "ROSANA APARECIDA DOS SANTOS", 
-            "ROSANGELA APARECIDA DE SOUZA", "ROSEMEIRE APARECIDA FERREIRA", "SANDRA APARECIDA DA SILVA", "SILVIA APARECIDA DOS SANTOS", 
-            "SONIA APARECIDA DE SOUZA", "TERESINHA APARECIDA FERREIRA", "VALDEMAR APARECIDO DA SILVA"
+            "RAIMUNDO MARTINS DE FARIAS", "CLEUSA FERRAZ DE ALMEIDA BALDINI", "NILCE DO CARMO CALLEGARO SGARIBOLDI", 
+            "RITA DE CASSIA BENEDITA STOFEL AGUIAR", "ADILSON CESAR DE MORAES", "DALVA DEL RIO ROSA WEISMANN", 
+            "GERSON PIRES", "MARILENE GONÇALVES DOS SANTOS SILVA", "LUIS ANTONIO PASCHOAL", "JOSE ELISA DIAS MACHADO", 
+            "ILMA MADALENA DE OLIVEIRA", "ANTONIO JOSE WILSON", "NEUSA DE PAULA FRANCO", "SILVIA REGINA TRAPP MOREIRA", 
+            "NIVALDO APARECIDO RODRIGUES", "DORACI DE OLIVEIRA SPAGNOL", "SANTO DE SOUZA", "ADRIANA APARECIDA DOS SANTOS", 
+            "MERCEDES ALMEIDA COELHO", "VALQUIRIA APARECIDA DE OLIVEIRA LEITE", "ZILDA DIAS PINTO DE SOUZA", 
+            "EDILAINE BELLO MARCUZ", "ANTONIO JACOMELI NETO", "MARCOS ANTONIO ANTUNES", "MARIA ELIZA DE ALMEIDA SANTIAGO", 
+            "RAIANE MENDES BRANDAO", "ANTONIO LEONEL TONON CHECA", "MARIA JOSE GOMES SANNA", "ROSANA TEZOTTO LOPES", 
+            "MARIA AMELIA RIBEIRO DE ARAUJO", "MARIA APARECIDA SOTILO BISAN", "VALDEMIR SOUZA MORAES", "LUCIANA FERRAZ LEITE NATEL", 
+            "ESTER BRANDAO TOLEDO", "SUELI MARIA GOBBI XAVIER", "SILVIO FERNANDES DE SOUZA", "ELISABETE MARCUZ", 
+            "SILVIO DE OLIVEIRA", "MARCELO DA VEIGA MICHETI", "SERGIO LUIS SPAGNOL", "SERGIO GOMES DA SILVA", 
+            "EDINA MARIA FARIA COSTA", "JANDIRA FILETI DE OLIVEIRA", "BENEDITO SANTIAGO", "ENIO PIAI", 
+            "TEREZA LEITE DE ARRUDA BERNARDELI", "BENEDITO HESPANHOL", "TERESA KERCHE BAUS", "LOURDES ABEL CORREIA", 
+            "SANTA FAVARO BENONI", "MAURINA MARIA ROSA", "MARTA RODRIGUES DE LARA SERVELIN", "LUIZ CARLOS BUENO DA SILVA", 
+            "MARCOS ANTONIO DE SOUSA COSTA", "ALBERTINA DE BRITO PRIETO", "ARMINDA DE CASSIA CEREZEL SAMPAIO", 
+            "DOROTI COSTA", "IRACEMA HENRIQUE", "FRANCISCO CARLOS FORESTO COAN", "RENATO CIANI BATISTA", 
+            "DORLICE DE OLIVEIRA ALMEIDA", "ORLANDO CANONES DE PROENCA", "ROSANA BENTO SOARES", "SIMONICA DA SILVA SOARES", 
+            "MARIO LUIZ MARTINS DE SAMPAIO", "ELENILDA FERREIRA SILVA", "JOAQUIM FERREIRA DA SILVA", "APARECIDA DE JESUS DIAS FERRAZ", 
+            "EVERTON ABEL DE CASTRO", "CELIA MARIA DIANA COSSARI", "BENEDITO MARTINS DE ALMEIDA", "KEILA GALLINDO SILVA SERAFIM", 
+            "HERMES AZULINI", "LUIS ANTONIO ALVES PEIXOTO", "CICERO FERREIRA", "EVANDRO RODRIGUES DA SILVA", 
+            "LAURINDO CORREA", "MIGUEL MUNHOZ", "VILMA DA SILVA BUENO"
         ];
 
-        // Busca e faz o parse dinâmico da planilha Excel GOVBR presente na raiz para mesclar eventuais novas entradas
+        // Mapa dinâmico de detalhes dos pacientes do GOVBR (Nome -> { nome, nascimento, idadeTexto, endereco, micro })
+        let govbrFootEvaluatedDetails = new Map();
+        
+        // Inicializa o mapa com os 79 nomes conhecidos
+        govbrFootEvaluatedNames.forEach(name => {
+            govbrFootEvaluatedDetails.set(normalizeName(name), {
+                nome: name,
+                nascimento: '-',
+                idadeTexto: '-',
+                endereco: '-',
+                micro: 'GOVBR'
+            });
+        });
+
+        // Busca e faz o parse dinâmico das planilhas Excel GOVBR presentes na raiz para capturar dados completos
         async function loadGovbrExcel() {
-            const filesToTry = ['Relatorio_C4__Diabetes_GOV_2.xlsx', 'Relatorio_C4__Diabetes_GOV.xlsx'];
+            const filesToTry = ['pes_avaliados_GOVBR.xlsx', 'Relatorio_C4__Diabetes_GOV_2.xlsx', 'Relatorio_C4__Diabetes_GOV.xlsx'];
             for (const filename of filesToTry) {
                 try {
                     const response = await fetch(filename);
@@ -223,40 +266,110 @@
                     const buffer = await response.arrayBuffer();
                     parseGovbrExcelBuffer(buffer, filename);
                     console.log(`Base GOVBR consultada na raiz a partir de ${filename}`);
-                    break;
                 } catch (e) {
-                    console.warn(`Tentativa de leitura local de ${filename} ignorada (usando base nativa):`, e);
+                    console.warn(`Tentativa de leitura local de ${filename} ignorada:`, e);
                 }
             }
         }
 
-        // Processa o buffer do arquivo Excel XLSX via SheetJS e mescla novos nomes dos pacientes
+        // Processa o buffer do arquivo Excel XLSX via SheetJS e enriquece o mapa com Nascimento, Idade, Endereço e Microárea
         function parseGovbrExcelBuffer(buffer, filename) {
             try {
                 const workbook = XLSX.read(new Uint8Array(buffer), { type: 'array' });
                 workbook.SheetNames.forEach(sheetName => {
                     const sheet = workbook.Sheets[sheetName];
-                    const jsonData = XLSX.utils.sheet_to_json(sheet, { header: 1 });
-                    jsonData.forEach(row => {
-                        if (!row || !row.length) return;
-                        row.forEach(cell => {
-                            if (!cell) return;
-                            const val = String(cell).trim();
-                            const norm = normalizeName(val);
-                            if (norm.length > 3 && 
-                                !norm.includes('NOME') && 
-                                !norm.includes('CPF') && 
-                                !norm.includes('CNS') && 
-                                !norm.includes('RELATORIO') && 
-                                !norm.includes('DIABETES') && 
-                                !norm.includes('GOV') && 
-                                !/^\d+$/.test(norm)) {
-                                if (!govbrFootEvaluatedNames.includes(norm)) {
-                                    govbrFootEvaluatedNames.push(norm);
-                                }
-                            }
+                    const rows = XLSX.utils.sheet_to_json(sheet, { header: 1 });
+                    if (!rows || !rows.length) return;
+
+                    let headerIdx = -1;
+                    let colNome = -1, colNasc = -1, colIdade = -1, colRua = -1, colNum = -1, colBairro = -1, colMicro = -1;
+
+                    for (let i = 0; i < Math.min(rows.length, 25); i++) {
+                        if (!rows[i]) continue;
+                        const rowStr = rows[i].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                        if (rowStr.includes("nome") || rowStr.includes("paciente") || rowStr.includes("cidadao")) {
+                            headerIdx = i;
+                            break;
+                        }
+                    }
+
+                    if (headerIdx !== -1) {
+                        const headers = rows[headerIdx];
+                        headers.forEach((h, idx) => {
+                            if (!h) return;
+                            const norm = String(h).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+                            if (norm.includes("nome") || norm.includes("paciente") || norm.includes("cidadao")) colNome = idx;
+                            if (norm.includes("nasc")) colNasc = idx;
+                            if (norm.includes("idade")) colIdade = idx;
+                            if (norm.includes("end") || norm.includes("logradouro") || norm.includes("rua")) colRua = idx;
+                            if (norm.includes("num") || norm === "n" || norm === "nº") colNum = idx;
+                            if (norm.includes("bairro")) colBairro = idx;
+                            if (norm.includes("micro")) colMicro = idx;
                         });
-                    });
+
+                        for (let r = headerIdx + 1; r < rows.length; r++) {
+                            const row = rows[r];
+                            if (!row || colNome === -1 || !row[colNome]) continue;
+                            const rawNome = String(row[colNome]).trim();
+                            const normKey = normalizeName(rawNome);
+                            if (normKey.length < 3 || normKey.includes("NOME") || normKey.includes("RELATORIO")) continue;
+
+                            let nasc = colNasc !== -1 && row[colNasc] ? String(row[colNasc]).trim() : '-';
+                            let idade = colIdade !== -1 && row[colIdade] ? String(row[colIdade]).trim() : '-';
+                            let micro = colMicro !== -1 && row[colMicro] ? String(row[colMicro]).trim() : 'GOVBR';
+                            
+                            let endParts = [];
+                            if (colRua !== -1 && row[colRua] && String(row[colRua]).trim() !== '-') endParts.push(String(row[colRua]).trim());
+                            if (colNum !== -1 && row[colNum] && String(row[colNum]).trim() !== '-') endParts.push(`Nº ${String(row[colNum]).trim()}`);
+                            if (colBairro !== -1 && row[colBairro] && String(row[colBairro]).trim() !== '-') endParts.push(String(row[colBairro]).trim());
+                            let end = endParts.length > 0 ? endParts.join(', ').toUpperCase() : '-';
+
+                            if (!govbrFootEvaluatedDetails.has(normKey)) {
+                                govbrFootEvaluatedDetails.set(normKey, {
+                                    nome: rawNome.toUpperCase(),
+                                    nascimento: nasc,
+                                    idadeTexto: idade,
+                                    endereco: end,
+                                    micro: micro
+                                });
+                            } else {
+                                const existing = govbrFootEvaluatedDetails.get(normKey);
+                                existing.nome = rawNome.toUpperCase();
+                                if (nasc !== '-' && existing.nascimento === '-') existing.nascimento = nasc;
+                                if (idade !== '-' && existing.idadeTexto === '-') existing.idadeTexto = idade;
+                                if (end !== '-' && existing.endereco === '-') existing.endereco = end;
+                                if (micro !== 'GOVBR' && existing.micro === 'GOVBR') existing.micro = micro;
+                            }
+                        }
+                    } else {
+                        // Fallback para lista simples sem cabeçalho padronizado
+                        rows.forEach(row => {
+                            if (!row || !row.length) return;
+                            row.forEach(cell => {
+                                if (!cell) return;
+                                const val = String(cell).trim();
+                                const norm = normalizeName(val);
+                                if (norm.length > 3 && 
+                                    !norm.includes('NOME') && 
+                                    !norm.includes('CPF') && 
+                                    !norm.includes('CNS') && 
+                                    !norm.includes('RELATORIO') && 
+                                    !norm.includes('DIABETES') && 
+                                    !norm.includes('GOV') && 
+                                    !/^\d+$/.test(norm)) {
+                                    if (!govbrFootEvaluatedDetails.has(norm)) {
+                                        govbrFootEvaluatedDetails.set(norm, {
+                                            nome: val.toUpperCase(),
+                                            nascimento: '-',
+                                            idadeTexto: '-',
+                                            endereco: '-',
+                                            micro: 'GOVBR'
+                                        });
+                                    }
+                                }
+                            });
+                        });
+                    }
                 });
             } catch (err) {
                 console.error("Erro ao ler a planilha Excel do GOVBR:", err);
@@ -310,7 +423,7 @@
                     ...COMMON_METRICS,
                     { id: 'hba1c', shortName: 'Solic. HbA1c', name: 'HBA1C Solicitada', icon: 'fa-vial', border: 'border-teal-500', text: 'text-teal-600', bg: 'bg-teal-100', bar: 'bg-teal-500', searches: ['hemoglobina', 'glicada', 'hba1c'] },
                     { id: 'pes_pec', shortName: 'Aval. Pés (PEC)', name: 'Avaliação Pés (PEC)', icon: 'fa-shoe-prints', border: 'border-indigo-500', text: 'text-indigo-600', bg: 'bg-indigo-100', bar: 'bg-indigo-500', searches: ['pe', 'pes'], exclude: 'peso', forceCol: 39 },
-                    { id: 'pes_govbr', shortName: 'Aval. Pés (GOVBR)', name: 'Avaliação Pés (GOVBR)', icon: 'fa-database', border: 'border-cyan-500', text: 'text-cyan-600', bg: 'bg-cyan-100', bar: 'bg-cyan-500', customCheck: function(p) { const pNorm = normalizeName(p.nome); return govbrFootEvaluatedNames.some(name => normalizeName(name) === pNorm); } },
+                    { id: 'pes_govbr', shortName: 'Aval. Pés (GOVBR)', name: 'Avaliação Pés (GOVBR)', icon: 'fa-database', border: 'border-cyan-500', text: 'text-cyan-600', bg: 'bg-cyan-100', bar: 'bg-cyan-500', hidePendingTab: true, customCheck: function(p) { const pNorm = normalizeName(p.nome); return govbrFootEvaluatedDetails.has(pNorm); } },
                     { id: 'pes_total', shortName: 'Aval. Pés Total', name: 'Avaliação Pés Total', icon: 'fa-square-check', border: 'border-blue-600', text: 'text-blue-700', bg: 'bg-blue-100', bar: 'bg-blue-600', customCheck: function(p) { return !!(p.metrics['pes_pec'] || p.metrics['pes_govbr']); } }
                 ]
             },
@@ -676,7 +789,18 @@
             kpiContainer.className = "grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4";
 
             visibleMetrics.forEach(m => {
-                const count = stats.metricCounts[m.id] || 0;
+                let count = stats.metricCounts[m.id] || 0;
+                
+                // Ajustes específicos para os cards de avaliação de pés em C4 - Diabéticos
+                if (m.id === 'pes_govbr') {
+                    count = 79; // Valor fixo da base legada GOVBR
+                } else if (m.id === 'pes_total') {
+                    // Evita contagem duplicada: soma 79 (base GOVBR) apenas com os pacientes que fizeram no PEC e NÃO estavam na lista do GOVBR
+                    const pecOnlyCount = stats.patients.filter(p => p.metrics['pes_pec'] && !p.metrics['pes_govbr']).length;
+                    count = 79 + pecOnlyCount;
+                }
+
+                const showPct = m.id !== 'pes_govbr';
                 const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
                 
                 const cardHtml = `
@@ -686,24 +810,30 @@
                             <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">${m.name}</p>
                             <div class="flex items-baseline space-x-2 mt-2">
                                 <h2 class="text-3xl font-extrabold text-slate-800">${count}</h2>
-                                <span class="text-sm font-bold ${m.text}">(${pct}%)</span>
+                                ${showPct ? `<span class="text-sm font-bold ${m.text}">(${pct}%)</span>` : ''}
                             </div>
                         </div>
                         <div class="${m.bg} p-4 rounded-full ${m.text}">
                             <i class="fa-solid ${m.icon} text-2xl"></i>
                         </div>
                     </div>
+                    ${showPct ? `
                     <div class="w-full bg-slate-200 rounded-full h-2 mt-4">
                         <div class="${m.bar} h-2 rounded-full transition-all duration-1000" style="width: 0%" id="bar-${m.id}"></div>
-                    </div>
+                    </div>` : `
+                    <div class="mt-4 text-xs font-medium text-slate-400 flex items-center gap-1.5">
+                        <i class="fa-solid fa-lock text-slate-400"></i> Registros do sistema anterior
+                    </div>`}
                 </div>`;
                 
                 kpiContainer.insertAdjacentHTML('beforeend', cardHtml);
                 
-                setTimeout(() => {
-                    const bar = document.getElementById(`bar-${m.id}`);
-                    if (bar) bar.style.width = `${pct}%`;
-                }, 100);
+                if (showPct) {
+                    setTimeout(() => {
+                        const bar = document.getElementById(`bar-${m.id}`);
+                        if (bar) bar.style.width = `${Math.min(pct, 100)}%`;
+                    }, 100);
+                }
             });
 
             const tabsContainer = document.getElementById('nominal-tabs');
@@ -726,7 +856,7 @@
             };
 
             createTab('geral', 'Matriz Geral', true);
-            currentMetrics.forEach(m => createTab(m.id, `Pendência: ${m.shortName || m.name}`, false));
+            currentMetrics.filter(m => !m.hidePendingTab).forEach(m => createTab(m.id, `Pendência: ${m.shortName || m.name}`, false));
 
             const renderNominalTable = (tabId) => {
                 activeTabId = tabId;
@@ -881,62 +1011,124 @@
                     }
                 }
             });
+
+            // Renderiza a Seção de Acompanhamento de Pés Diabéticos (C4)
+            renderFeetEvaluationSection(stats);
         }
 
-        // Exportação para CSV / XLSX
-        function exportTable(format) {
-            const table = document.getElementById('nominal-data-table');
-            if (!table) return;
+        // Função para renderizar a tabela consolidada de Avaliação de Pés (GOVBR + PEC)
+        function renderFeetEvaluationSection(stats) {
+            const section = document.getElementById('section-pes-diabeticos');
+            if (!section) return;
 
-            const conditionName = CONDITIONS[currentCondition].label.replace(/[^a-zA-Z0-9]/g, '_');
-            const tabName = activeTabId === 'geral' ? 'Matriz_Geral' : `Pendencia_${activeTabId}`;
-            const filename = `Acompanhamento_${conditionName}_${tabName}`;
-
-            if (format === 'csv') {
-                let csvContent = [];
-                const rows = table.querySelectorAll('tr');
-                rows.forEach(row => {
-                    let cols = row.querySelectorAll('th, td');
-                    let data = [];
-                    cols.forEach(col => {
-                        let text = col.innerText.trim();
-                        if (col.querySelector('.fa-check')) text = 'ATINGIDO';
-                        if (col.querySelector('.fa-xmark')) text = 'PENDENTE';
-                        data.push('"' + text.replace(/"/g, '""') + '"');
-                    });
-                    csvContent.push(data.join(';'));
-                });
-
-                const csvString = csvContent.join('\n');
-                const blob = new Blob(["\ufeff" + csvString], { type: 'text/csv;charset=utf-8;' });
-                const link = document.createElement('a');
-                link.href = URL.createObjectURL(blob);
-                link.download = filename + '.csv';
-                link.style.display = 'none';
-                document.body.appendChild(link);
-                link.click();
-                document.body.removeChild(link);
-            } else if (format === 'xlsx') {
-                let excelData = [];
-                const rows = table.querySelectorAll('tr');
-                rows.forEach(row => {
-                    let cols = row.querySelectorAll('th, td');
-                    let data = [];
-                    cols.forEach(col => {
-                        let text = col.innerText.trim();
-                        if (col.querySelector('.fa-check')) text = 'ATINGIDO';
-                        if (col.querySelector('.fa-xmark')) text = 'PENDENTE';
-                        data.push(text);
-                    });
-                    excelData.push(data);
-                });
-
-                const ws = XLSX.utils.aoa_to_sheet(excelData);
-                const wb = XLSX.utils.book_new();
-                XLSX.utils.book_append_sheet(wb, ws, "Acompanhamento");
-                XLSX.writeFile(wb, filename + '.xlsx');
+            if (currentCondition !== 'diabeticos') {
+                section.classList.add('hidden');
+                return;
             }
+
+            section.classList.remove('hidden');
+
+            // Construir mapa consolidado dos pacientes com pés avaliados
+            let evaluatedMap = new Map();
+
+            // 1. Adiciona os pacientes da base legada GOVBR com todos os seus dados
+            govbrFootEvaluatedDetails.forEach((details, normKey) => {
+                evaluatedMap.set(normKey, {
+                    nome: details.nome,
+                    nascimento: details.nascimento || '-',
+                    idadeTexto: details.idadeTexto || '-',
+                    endereco: details.endereco || '-',
+                    micro: details.micro || 'GOVBR',
+                    origem: 'GOVBR (Sistema Antigo)',
+                    isGovbr: true,
+                    isPec: false
+                });
+            });
+
+            // 2. Mescla e enriquece com dados importados do PEC
+            if (stats && stats.patients) {
+                stats.patients.forEach(p => {
+                    const normKey = normalizeName(p.nome);
+                    const hasPec = !!p.metrics['pes_pec'];
+                    const hasGovbr = !!p.metrics['pes_govbr'];
+
+                    if (hasPec || hasGovbr) {
+                        if (evaluatedMap.has(normKey)) {
+                            const existing = evaluatedMap.get(normKey);
+                            existing.nome = p.nome; // Grafia do PEC
+                            if (p.nascimento && p.nascimento !== '-') existing.nascimento = p.nascimento;
+                            if (p.idadeTexto && p.idadeTexto !== '-') existing.idadeTexto = p.idadeTexto;
+                            if (p.endereco && p.endereco !== '-') existing.endereco = p.endereco;
+                            if (p.micro && p.micro !== '-') existing.micro = p.micro;
+
+                            if (hasPec) {
+                                existing.isPec = true;
+                                existing.origem = 'GOVBR + e-SUS PEC';
+                            }
+                        } else if (hasPec) {
+                            evaluatedMap.set(normKey, {
+                                nome: p.nome,
+                                nascimento: p.nascimento || '-',
+                                idadeTexto: p.idadeTexto || '-',
+                                endereco: p.endereco || '-',
+                                micro: p.micro || '-',
+                                origem: 'e-SUS PEC',
+                                isGovbr: false,
+                                isPec: true
+                            });
+                        }
+                    }
+                });
+            }
+
+            const feetList = Array.from(evaluatedMap.values());
+            const govbrCount = feetList.filter(f => f.isGovbr).length;
+            const pecOnlyCount = feetList.filter(f => f.isPec && !f.isGovbr).length;
+
+            const counterMsg = document.getElementById('feet-table-counter-msg');
+            if (counterMsg) {
+                counterMsg.innerHTML = `<i class="fa-solid fa-shoe-prints mr-1 text-indigo-600"></i> Exibindo <span class="text-slate-800 font-bold">${feetList.length}</span> pacientes com pés avaliados (${govbrCount} via GOVBR e ${pecOnlyCount} novos via e-SUS PEC).`;
+            }
+
+            const content = document.getElementById('feet-nominal-content');
+            if (!content) return;
+
+            let html = '<table id="feet-nominal-data-table" class="min-w-full text-left text-sm whitespace-nowrap"><thead class="uppercase tracking-wider text-slate-600 font-bold text-xs sticky top-0 bg-slate-100 z-20 shadow-sm"><tr>';
+            html += '<th scope="col" class="px-4 py-3 sticky left-0 top-0 bg-slate-200 z-30 border-b shadow-[1px_0_0_0_#cbd5e1]">Nome do(a) Paciente</th>';
+            html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Nascimento</th>';
+            html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Idade</th>';
+            html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Endereço</th>';
+            html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Microárea</th>';
+            html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0 text-center">Origem da Avaliação</th>';
+            html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0 text-center">Status</th>';
+            html += '</tr></thead><tbody class="divide-y divide-slate-100">';
+
+            feetList.forEach((p, idx) => {
+                let bg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                
+                let origemBadge = '';
+                if (p.origem === 'GOVBR + e-SUS PEC') {
+                    origemBadge = '<span class="bg-purple-100 text-purple-800 border border-purple-200 px-2.5 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1"><i class="fa-solid fa-layer-group"></i> GOVBR + PEC</span>';
+                } else if (p.origem === 'e-SUS PEC') {
+                    origemBadge = '<span class="bg-indigo-100 text-indigo-800 border border-indigo-200 px-2.5 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1"><i class="fa-solid fa-file-medical"></i> e-SUS PEC</span>';
+                } else {
+                    origemBadge = '<span class="bg-cyan-100 text-cyan-800 border border-cyan-200 px-2.5 py-1 rounded-md text-xs font-semibold inline-flex items-center gap-1"><i class="fa-solid fa-database"></i> GOVBR (Antigo)</span>';
+                }
+
+                html += `<tr class="hover:bg-slate-100 transition-colors ${bg}">
+                    <td class="px-4 py-3 sticky left-0 z-10 ${bg} shadow-[1px_0_0_0_#e2e8f0] font-semibold text-slate-700">${p.nome}</td>
+                    <td class="px-4 py-3">${p.nascimento}</td>
+                    <td class="px-4 py-3">${p.idadeTexto}</td>
+                    <td class="px-4 py-3 text-xs">${p.endereco}</td>
+                    <td class="px-4 py-3">${p.micro}</td>
+                    <td class="px-4 py-2 text-center">${origemBadge}</td>
+                    <td class="px-4 py-2 text-center"><span class="bg-emerald-100 text-emerald-700 border border-emerald-200 px-2.5 py-1 rounded-md text-xs font-bold inline-flex items-center gap-1"><i class="fa-solid fa-check text-emerald-600"></i> Pé Avaliado</span></td>
+                </tr>`;
+            });
+
+            html += '</tbody></table>';
+            content.innerHTML = html;
         }
-    </script>
-</body>
-</html>
+
+        // Exportação da tabela nominal de pés avaliados
+<!-- ... existing code -->
