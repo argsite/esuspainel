@@ -14,10 +14,15 @@
     <!-- PapaParse para ler CSV -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
     
+    <!-- SheetJS (xlsx) para exportação Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
     <!-- FontAwesome para ícones -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
     <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
     <link rel="icon" type="image/x-icon" href="favicon.ico">
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
@@ -71,7 +76,7 @@
             <div class="flex items-center justify-between">
                 <div>
                     <h3 class="text-yellow-800 font-bold text-lg"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Arquivo não encontrado automaticamente</h3>
-                    <p class="text-yellow-700 text-sm mt-1">Por favor, carregue o relatório do PEC manualmente para gerar o dashboard.</p>
+                    <p class="text-yellow-700 text-sm mt-1">Por favor, carregue o arquivo <strong id="upload-filename-msg">acompanhamento-condicao-saude_2026-11-05-08-44.csv</strong> manualmente para gerar o dashboard.</p>
                 </div>
                 <div>
                     <input type="file" id="csv-file" accept=".csv" class="hidden">
@@ -144,9 +149,19 @@
                         <!-- Populated via JS -->
                     </div>
                 </div>
-                <!-- Contador de registros da tabela -->
-                <div class="mb-4 text-sm font-semibold text-slate-500" id="table-counter-msg">
-                    <!-- Populated via JS -->
+                <!-- Contador de registros da tabela e botões de exportação -->
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                    <div class="text-sm font-semibold text-slate-500" id="table-counter-msg">
+                        <!-- Populated via JS -->
+                    </div>
+                    <div class="flex items-center space-x-2" id="export-buttons-container">
+                        <button onclick="exportTable('csv')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
+                            <i class="fa-solid fa-file-csv mr-1.5 text-sm"></i> Exportar CSV
+                        </button>
+                        <button onclick="exportTable('xlsx')" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
+                            <i class="fa-solid fa-file-excel mr-1.5 text-sm"></i> Exportar XLSX
+                        </button>
+                    </div>
                 </div>
                 <div id="nominal-content" class="overflow-x-auto max-h-[500px] overflow-y-auto relative rounded-lg border border-slate-200">
                     <!-- Populated via JS -->
@@ -172,6 +187,7 @@
         let charts = {}; // Para armazenar e destruir gráficos anteriores se necessário
 
         let currentCondition = 'infantil';
+        let activeTabId = 'geral'; // Aba nominal ativa atual para exportação
         
         // Objeto para cachear os dados processados de cada aba para não perder ao alternar
         let tabCache = {
@@ -660,9 +676,10 @@
             currentMetrics.forEach(m => createTab(m.id, `Pendência: ${m.shortName || m.name}`, false));
 
             const renderNominalTable = (tabId) => {
+                activeTabId = tabId; // Atualiza a aba nominal ativa
                 const content = document.getElementById('nominal-content');
                 const counterMsg = document.getElementById('table-counter-msg');
-                let html = '<table class="min-w-full text-left text-sm whitespace-nowrap"><thead class="uppercase tracking-wider text-slate-600 font-bold text-xs sticky top-0 bg-slate-100 z-20 shadow-sm"><tr>';
+                let html = '<table id="nominal-data-table" class="min-w-full text-left text-sm whitespace-nowrap"><thead class="uppercase tracking-wider text-slate-600 font-bold text-xs sticky top-0 bg-slate-100 z-20 shadow-sm"><tr>';
                 
                 if (tabId === 'geral') {
                     counterMsg.innerHTML = `<i class="fa-solid fa-users mr-1 text-blue-500"></i> Exibindo <span class="text-slate-800 font-bold">${stats.patients.length}</span> pacientes na Matriz Geral.`;
@@ -819,6 +836,66 @@
                     }
                 }
             });
+        }
+
+        // Função para exportar a tabela nominal ativa em CSV ou XLSX
+        function exportTable(format) {
+            const table = document.getElementById('nominal-data-table');
+            if (!table) {
+                alert('Nenhuma tabela disponível para exportação.');
+                return;
+            }
+
+            const conditionName = CONDITIONS[currentCondition].label.replace(/[^a-zA-Z0-9]/g, '_');
+            const tabName = activeTabId === 'geral' ? 'Matriz_Geral' : `Pendencia_${activeTabId}`;
+            const filename = `Acompanhamento_${conditionName}_${tabName}`;
+
+            if (format === 'csv') {
+                let csvContent = [];
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    let cols = row.querySelectorAll('th, td');
+                    let data = [];
+                    cols.forEach(col => {
+                        // Limpa o texto ou substitui ícones por texto de status
+                        let text = col.innerText.trim();
+                        if (col.querySelector('.fa-check')) text = 'ATINGIDO';
+                        if (col.querySelector('.fa-xmark')) text = 'PENDENTE';
+                        data.push('"' + text.replace(/"/g, '""') + '"');
+                    });
+                    csvContent.push(data.join(';'));
+                });
+
+                const csvString = csvContent.join('\n');
+                const blob = new Blob(["\ufeff" + csvString], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename + '.csv';
+                link.style.display = 'none';
+                document.body.appendChild(link);
+                link.click();
+                document.body.removeChild(link);
+            } else if (format === 'xlsx') {
+                // Prepara matriz de dados limpa para o SheetJS
+                let excelData = [];
+                const rows = table.querySelectorAll('tr');
+                rows.forEach(row => {
+                    let cols = row.querySelectorAll('th, td');
+                    let data = [];
+                    cols.forEach(col => {
+                        let text = col.innerText.trim();
+                        if (col.querySelector('.fa-check')) text = 'ATINGIDO';
+                        if (col.querySelector('.fa-xmark')) text = 'PENDENTE';
+                        data.push(text);
+                    });
+                    excelData.push(data);
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(excelData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Acompanhamento");
+                XLSX.writeFile(wb, filename + '.xlsx');
+            }
         }
     </script>
 </body>
