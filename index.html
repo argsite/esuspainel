@@ -215,6 +215,37 @@
     </footer>
 
     <script>
+        // Função robusta e infalível para corrigir caracteres corrompidos de encoding em arquivos do e-SUS PEC (ISO-8859-1 / ANSI / UTF-8)
+        function sanitizeText(str) {
+            if (!str || typeof str !== 'string') return str || '';
+            return str
+                .replace(/[\ufffd\u007f-\u009f]/g, '') // Remove caracteres corrompidos genéricos
+                .replace(/Ã§/g, 'ç').replace(/Ã‡/g, 'Ç')
+                .replace(/Ã£/g, 'ã').replace(/Ãƒ/g, 'Ã')
+                .replace(/Ã¡/g, 'á').replace(/Ã/g, 'Á')
+                .replace(/Ã©/g, 'é').replace(/Ã‰/g, 'É')
+                .replace(/Ã­/g, 'í').replace(/Ã/g, 'Í')
+                .replace(/Ã³/g, 'ó').replace(/Ã/g, 'Ó')
+                .replace(/Ãº/g, 'ú').replace(/Ã/g, 'Ú')
+                .replace(/Ãª/g, 'ê').replace(/Ã/g, 'Ê')
+                .replace(/Ã´/g, 'ô').replace(/Ã/g, 'Ô')
+                .replace(/Ã /g, 'à').replace(/Ã/g, 'À')
+                .trim();
+        }
+
+        // Leitor seguro de ArrayBuffer com detecção exata para relatórios do PEC
+        function decodeCSVText(arrayBuffer) {
+            let text = '';
+            try {
+                const decoderIso = new TextDecoder('iso-8859-1');
+                text = decoderIso.decode(arrayBuffer);
+            } catch (e) {
+                const decoderUtf8 = new TextDecoder('utf-8');
+                text = decoderUtf8.decode(arrayBuffer);
+            }
+            return sanitizeText(text);
+        }
+
         // Normalização de nomes (remove acentos, pontuação e múltiplos espaços)
         function normalizeName(str) {
             if (!str) return "";
@@ -224,18 +255,6 @@
                 .replace(/[\u0300-\u036f]/g, "")
                 .replace(/[^A-Z0-9\s]/g, "")
                 .replace(/\s+/g, " ")
-                .trim();
-        }
-
-        // Função para corrigir caracteres mal formatados (como ) provenientes de CSVs em ISO-8859-1 / ANSI
-        function sanitizeText(str) {
-            if (typeof str !== 'string') return str;
-            return str
-                .replace(/[\uFFFD\u007F-\u009F]/g, "") // Remove caractere de substituição genérico
-                .replace(/Ã§/g, "ç").replace(/Ã‡/g, "Ç")
-                .replace(/Ã£/g, "ã").replace(/Ã³/g, "ó").replace(/Ã¡/g, "á").replace(/Ã©/g, "é").replace(/Ã­/g, "í")
-                .replace(/Ãª/g, "ê").replace(/Ã´/g, "ô").replace(/Ãº/g, "ú").replace(/Ã /g, "à")
-                .replace(/Ã/g, "A").replace(/Â/g, "")
                 .trim();
         }
 
@@ -366,9 +385,10 @@
                     if (!file) return;
                     const reader = new FileReader();
                     reader.onload = function(event) {
-                        processCSVData(event.target.result);
+                        const csvText = decodeCSVText(event.target.result);
+                        processCSVData(csvText);
                     };
-                    reader.readAsText(file);
+                    reader.readAsArrayBuffer(file);
                 });
             };
 
@@ -391,15 +411,15 @@
                     if (rows && rows.length > 1) {
                         rows.forEach((r, idx) => {
                             if (idx === 0 || !r || r.length === 0) return;
-                            const rawName = String(r[0] || '').trim();
+                            const rawName = sanitizeText(String(r[0] || '')).trim();
                             if (!rawName) return;
                             const norm = normalizeName(rawName);
                             govbrDetailsMap[norm] = {
                                 nome: rawName,
-                                nascimento: r[1] ? String(r[1]).trim() : "-",
-                                idadeTexto: r[2] ? String(r[2]).trim() : "-",
-                                endereco: r[3] ? String(r[3]).trim().toUpperCase() : "-",
-                                micro: r[4] ? String(r[4]).trim() : "GOVBR"
+                                nascimento: r[1] ? sanitizeText(String(r[1])).trim() : "-",
+                                idadeTexto: r[2] ? sanitizeText(String(r[2])).trim() : "-",
+                                endereco: r[3] ? sanitizeText(String(r[3])).trim().toUpperCase() : "-",
+                                micro: r[4] ? sanitizeText(String(r[4])).trim() : "GOVBR"
                             };
                         });
                         break;
@@ -446,14 +466,7 @@
                 if (!response.ok) throw new Error('Arquivo não encontrado localmente.');
                 
                 const buffer = await response.arrayBuffer();
-                let csvText = '';
-                try {
-                    const decoderUtf8 = new TextDecoder('utf-8', { fatal: true });
-                    csvText = decoderUtf8.decode(buffer);
-                } catch (e) {
-                    const decoderIso = new TextDecoder('iso-8859-1');
-                    csvText = decoderIso.decode(buffer);
-                }
+                const csvText = decodeCSVText(buffer);
                 
                 document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-check-circle text-green-300 mr-1"></i> Dados Carregados';
                 processCSVData(csvText);
@@ -461,7 +474,6 @@
                 document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-circle-exclamation text-yellow-300 mr-1"></i> Selecione um arquivo';
                 document.getElementById('upload-section').classList.remove('hidden');
                 document.getElementById('loading-state').classList.add('hidden');
-                document.getElementById('upload-filename-msg').innerText = targetFile;
             }
         }
 
@@ -470,25 +482,27 @@
             document.getElementById('dashboard-content').classList.add('hidden');
             document.getElementById('upload-section').classList.add('hidden');
 
-            Papa.parse(csvText, {
-                skipEmptyLines: false,
-                delimiter: ';', 
-                complete: function(results) {
-                    if (results.data.length <= 1 && csvText.includes(',')) {
-                        Papa.parse(csvText, {
-                            skipEmptyLines: false,
-                            delimiter: ',',
-                            complete: function(res2) { extractAndAnalyze(res2.data); }
-                        });
-                    } else {
-                        extractAndAnalyze(results.data);
+            setTimeout(() => {
+                Papa.parse(csvText, {
+                    skipEmptyLines: false,
+                    delimiter: ';', 
+                    complete: function(results) {
+                        if (results.data.length <= 1 && csvText.includes(',')) {
+                            Papa.parse(csvText, {
+                                skipEmptyLines: false,
+                                delimiter: ',',
+                                complete: function(res2) { extractAndAnalyze(res2.data); }
+                            });
+                        } else {
+                            extractAndAnalyze(results.data);
+                        }
+                    },
+                    error: function(err) {
+                        document.getElementById('loading-state').classList.add('hidden');
+                        document.getElementById('upload-section').classList.remove('hidden');
                     }
-                },
-                error: function(err) {
-                    document.getElementById('loading-state').classList.add('hidden');
-                    document.getElementById('upload-section').classList.remove('hidden');
-                }
-            });
+                });
+            }, 50);
         }
 
         function extractAndAnalyze(data) {
@@ -583,17 +597,17 @@
                 if (colNome !== -1 && !row[colNome] && colIdade !== -1 && !row[colIdade]) return;
 
                 stats.total++;
-                const nome = (colNome !== -1 && row[colNome]) ? String(row[colNome]).trim() : `Paciente ${stats.total}`;
+                const nome = sanitizeText((colNome !== -1 && row[colNome]) ? String(row[colNome]).trim() : `Paciente ${stats.total}`);
                 const normNome = normalizeName(nome);
                 let pMetrics = {};
 
-                const micro = colMicro !== -1 && row[colMicro] ? String(row[colMicro]).trim() : "Sem Micro";
+                const micro = sanitizeText(colMicro !== -1 && row[colMicro] ? String(row[colMicro]).trim() : "Sem Micro");
                 const nascimento = colNascimento !== -1 && row[colNascimento] ? String(row[colNascimento]).trim() : "-";
                 
                 let enderecoParts = [];
-                if (colRua !== -1 && row[colRua]) enderecoParts.push(String(row[colRua]).trim());
-                if (colNum !== -1 && row[colNum]) enderecoParts.push(`Nº ${String(row[colNum]).trim()}`);
-                if (colBairro !== -1 && row[colBairro]) enderecoParts.push(String(row[colBairro]).trim());
+                if (colRua !== -1 && row[colRua]) enderecoParts.push(sanitizeText(String(row[colRua]).trim()));
+                if (colNum !== -1 && row[colNum]) enderecoParts.push(`Nº ${sanitizeText(String(row[colNum]).trim())}`);
+                if (colBairro !== -1 && row[colBairro]) enderecoParts.push(sanitizeText(String(row[colBairro]).trim()));
                 const endereco = enderecoParts.length > 0 ? enderecoParts.join(', ').toUpperCase() : "-";
 
                 let idadeTexto = "-";
