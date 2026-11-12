@@ -1,0 +1,866 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Painel de Monitoramento e-SUS APS</title>
+    
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- PapaParse para ler CSV -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.4.1/papaparse.min.js"></script>
+    
+    <!-- SheetJS (xlsx) para leitura e exportação Excel -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    
+    <!-- FontAwesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+    <link rel="icon" type="image/png" sizes="32x32" href="/favicon.png">
+    <link rel="icon" type="image/x-icon" href="favicon.ico">
+
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.95);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        .chart-container {
+            position: relative;
+            height: 300px;
+            width: 100%;
+        }
+    </style>
+</head>
+<body class="text-slate-800 antialiased min-h-screen flex flex-col">
+
+    <!-- Header -->
+    <header class="bg-blue-600 text-white shadow-md">
+        <div class="max-w-[96%] mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
+            <div class="flex items-center space-x-3">
+                <i class="fa-solid fa-file-medical text-2xl"></i>
+                <h1 class="text-xl font-bold">Painel de Monitoramento e-SUS APS</h1>
+            </div>
+            <div class="flex items-center space-x-3">
+                <div class="text-sm font-medium opacity-90" id="status-indicator">
+                    <i class="fa-solid fa-spinner fa-spin mr-2"></i> Buscando dados...
+                </div>
+                <label for="csv-file-header" class="cursor-pointer bg-white/10 hover:bg-white/20 text-white text-xs font-semibold px-3 py-2 rounded-lg border border-white/20 transition-colors flex items-center gap-1.5 shadow-sm">
+                    <i class="fa-solid fa-upload"></i> Importar CSV
+                </label>
+                <input type="file" id="csv-file-header" accept=".csv" class="hidden">
+            </div>
+        </div>
+        
+        <!-- Abas de Navegação -->
+        <div class="max-w-[96%] mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
+            <nav class="flex space-x-2 mt-2 min-w-max pb-1" aria-label="Tabs">
+                <button onclick="setCondition('infantil')" id="tab-infantil" class="bg-white text-blue-600 px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-100">C2 - Desenvolvimento Infantil</button>
+                <button onclick="setCondition('gestantes')" id="tab-gestantes" class="bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100">C3 - Gestantes e Puérperas</button>
+                <button onclick="setCondition('diabeticos')" id="tab-diabeticos" class="bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100">C4 - Diabéticos</button>
+                <button onclick="setCondition('hipertensos')" id="tab-hipertensos" class="bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100">C5 - Hipertensos</button>
+                <button onclick="setCondition('idosos')" id="tab-idosos" class="bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100">C6 - Idosos</button>
+                <button onclick="setCondition('mulher')" id="tab-mulher" class="bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100">C7 - Saúde da Mulher</button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Main Content -->
+    <main class="flex-grow max-w-[96%] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
+        
+        <!-- Fallback Upload (Exibido quando arquivo local falha) -->
+        <div id="upload-section" class="hidden mb-8 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md shadow-sm">
+            <div class="flex items-center justify-between flex-wrap gap-4">
+                <div>
+                    <h3 class="text-yellow-800 font-bold text-lg"><i class="fa-solid fa-triangle-exclamation mr-2"></i>Importar relatório do PEC</h3>
+                    <p class="text-yellow-700 text-sm mt-1">Carregue o arquivo CSV correspondente para gerar a análise desta linha de cuidado.</p>
+                </div>
+                <div>
+                    <label for="csv-file-section" class="cursor-pointer bg-yellow-500 hover:bg-yellow-600 text-white px-4 py-2 rounded-lg font-medium transition-colors inline-block">
+                        <i class="fa-solid fa-upload mr-2"></i> Selecionar Arquivo CSV
+                    </label>
+                    <input type="file" id="csv-file-section" accept=".csv" class="hidden">
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard Skeleton / Loading state -->
+        <div id="loading-state" class="flex flex-col items-center justify-center py-20">
+            <div class="animate-spin rounded-full h-16 w-16 border-t-4 border-b-4 border-blue-600 mb-4"></div>
+            <p class="text-slate-500 font-medium">Processando relatório...</p>
+        </div>
+
+        <!-- Dashboard Content -->
+        <div id="dashboard-content" class="hidden space-y-6">
+            
+            <!-- KPIs -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-container">
+                <!-- Card Total -->
+                <div class="glass-card rounded-2xl p-6 border-l-4 border-blue-500" id="card-total">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider" id="label-total-card">Total de Pacientes</p>
+                            <h2 class="text-4xl font-extrabold text-slate-800 mt-2" id="kpi-total">-</h2>
+                        </div>
+                        <div class="bg-blue-100 p-4 rounded-full text-blue-600">
+                            <i class="fa-solid fa-users text-2xl"></i>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Gráficos -->
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6" id="charts-container">
+                <!-- Faixa Etária -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2"><i class="fa-solid fa-chart-bar mr-2 text-blue-500"></i>Distribuição por Faixa Etária</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-idade"></canvas>
+                    </div>
+                </div>
+
+                <!-- Sexo -->
+                <div class="glass-card rounded-2xl p-6" id="card-sexo">
+                    <h3 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2"><i class="fa-solid fa-venus-mars mr-2 text-pink-500"></i>Distribuição por Sexo</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-sexo"></canvas>
+                    </div>
+                </div>
+
+                <!-- Microárea -->
+                <div class="glass-card rounded-2xl p-6">
+                    <h3 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2"><i class="fa-solid fa-map-location-dot mr-2 text-emerald-500"></i>Pacientes por Microárea</h3>
+                    <div class="chart-container">
+                        <canvas id="chart-micro"></canvas>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela Nominal de Acompanhamento Geral -->
+            <div class="glass-card rounded-2xl p-6 mt-6 relative z-0">
+                <div class="flex flex-col lg:flex-row lg:items-center justify-between mb-2 border-b pb-2 gap-4">
+                    <h3 class="text-lg font-bold text-slate-700 whitespace-nowrap"><i class="fa-solid fa-list-check mr-2 text-blue-600"></i>Acompanhamento Nominal e Busca Ativa</h3>
+                    <div class="flex flex-wrap gap-2 justify-start lg:justify-end" id="nominal-tabs"></div>
+                </div>
+                
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                    <div class="text-sm font-semibold text-slate-500" id="table-counter-msg"></div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportTable('csv')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
+                            <i class="fa-solid fa-file-csv mr-1.5 text-sm"></i> Exportar CSV
+                        </button>
+                        <button onclick="exportTable('xlsx')" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
+                            <i class="fa-solid fa-file-excel mr-1.5 text-sm"></i> Exportar XLSX
+                        </button>
+                    </div>
+                </div>
+
+                <div id="nominal-content" class="overflow-x-auto max-h-[500px] overflow-y-auto relative rounded-lg border border-slate-200"></div>
+            </div>
+
+            <!-- Seção Específica para C4 - Diabéticos: Tabela Nominal de Pés Avaliados -->
+            <div id="section-pes-avaliados" class="glass-card rounded-2xl p-6 mt-6 relative z-0 hidden border-t-4 border-indigo-500">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-3 border-b pb-3 gap-2">
+                    <div>
+                        <h3 class="text-lg font-bold text-slate-800 flex items-center gap-2">
+                            <i class="fa-solid fa-shoe-prints text-indigo-600"></i>
+                            Acompanhamento de Avaliação de Pés Diabéticos (GOVBR + e-SUS PEC)
+                        </h3>
+                        <p class="text-xs text-slate-500 mt-1">Lista nominal unificada com todas as avaliações registradas na base antiga (GOVBR) e nas novas do e-SUS PEC.</p>
+                    </div>
+                    <div class="flex items-center space-x-2">
+                        <button onclick="exportFeetTable('csv')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
+                            <i class="fa-solid fa-file-csv mr-1.5"></i> Exportar Lista CSV
+                        </button>
+                        <button onclick="exportFeetTable('xlsx')" class="bg-teal-600 hover:bg-teal-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
+                            <i class="fa-solid fa-file-excel mr-1.5"></i> Exportar Lista XLSX
+                        </button>
+                    </div>
+                </div>
+
+                <div class="text-sm font-semibold text-slate-600 mb-3" id="feet-counter-msg"></div>
+
+                <div class="overflow-x-auto max-h-[450px] overflow-y-auto relative rounded-lg border border-slate-200">
+                    <table id="feet-data-table" class="min-w-full text-left text-sm whitespace-nowrap">
+                        <thead class="uppercase tracking-wider text-slate-600 font-bold text-xs sticky top-0 bg-slate-100 z-20 shadow-sm">
+                            <tr>
+                                <th scope="col" class="px-4 py-3 sticky left-0 top-0 bg-slate-200 z-30 border-b shadow-[1px_0_0_0_#cbd5e1]">Nome do(a) Paciente</th>
+                                <th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Nascimento</th>
+                                <th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Idade</th>
+                                <th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Endereço</th>
+                                <th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Microárea</th>
+                                <th scope="col" class="px-4 py-3 text-center bg-slate-100 border-b z-20 sticky top-0">Origem da Avaliação</th>
+                            </tr>
+                        </thead>
+                        <tbody id="feet-table-body" class="divide-y divide-slate-100"></tbody>
+                    </table>
+                </div>
+            </div>
+
+        </div>
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-slate-800 text-slate-400 py-4 text-center text-sm mt-8">
+        <p>Gerado a partir dos dados do e-SUS PEC • by @argsite</p>
+    </footer>
+
+    <script>
+        // Função robusta e infalível para corrigir caracteres corrompidos de encoding em arquivos do e-SUS PEC (ISO-8859-1 / ANSI / UTF-8)
+        function sanitizeText(str) {
+            if (!str || typeof str !== 'string') return str || '';
+            return str
+                .replace(/[\ufffd\u007f-\u009f]/g, '') // Remove caracteres corrompidos genéricos
+                .replace(/Ã§/g, 'ç').replace(/Ã‡/g, 'Ç')
+                .replace(/Ã£/g, 'ã').replace(/Ãƒ/g, 'Ã')
+                .replace(/Ã¡/g, 'á').replace(/Ã /g, 'Á')
+                .replace(/Ã©/g, 'é').replace(/Ã‰/g, 'É')
+                .replace(/Ã­/g, 'í').replace(/Ã /g, 'Í')
+                .replace(/Ã³/g, 'ó').replace(/Ã“/g, 'Ó')
+                .replace(/Ãº/g, 'ú').replace(/Ãš/g, 'Ú')
+                .replace(/Ãª/g, 'ê').replace(/ÃÊ/g, 'Ê')
+                .replace(/Ã´/g, 'ô').replace(/Ã/g, 'Ô')
+                .replace(/Ã /g, 'à').replace(/Ã/g, 'À')
+                .trim();
+        }
+
+        // Leitor seguro de ArrayBuffer com detecção exata para relatórios do PEC
+        function decodeCSVText(arrayBuffer) {
+            let text = '';
+            try {
+                const decoderIso = new TextDecoder('iso-8859-1');
+                text = decoderIso.decode(arrayBuffer);
+            } catch (e) {
+                const decoderUtf8 = new TextDecoder('utf-8');
+                text = decoderUtf8.decode(arrayBuffer);
+            }
+            return sanitizeText(text);
+        }
+
+        // Normalização de nomes (remove acentos, pontuação e múltiplos espaços)
+        function normalizeName(str) {
+            if (!str) return "";
+            return sanitizeText(str)
+                .toUpperCase()
+                .normalize("NFD")
+                .replace(/[\u0300-\u036f]/g, "")
+                .replace(/[^A-Z0-9\s]/g, "")
+                .replace(/\s+/g, " ")
+                .trim();
+        }
+
+        const COMMON_METRICS = [
+            { id: 'consulta_med', shortName: 'Cons. Médica (6m)', hidden: true, forceCol: 21, maxDays: 180 }, 
+            { id: 'visita_acs', shortName: 'Visita ACS (12m)', hidden: true, forceCol: 27, maxDays: 365 },   
+            { id: 'peso_altura', shortName: 'Peso/Altura (12m)', hidden: true, forceCol: 31, maxDays: 365 },  
+            { id: 'pa_recente', shortName: 'Aferição PA (6m)', hidden: true, forceCol: 33, maxDays: 180 }    
+        ];
+
+        const CONDITIONS = {
+            diabeticos: {
+                label: 'C4 - Diabéticos',
+                file: 'acompanhamento-condicao-saude_2026-11-04-15-17.csv',
+                metrics: [
+                    ...COMMON_METRICS,
+                    { id: 'hba1c', shortName: 'Solic. HbA1c', name: 'HBA1C Solicitada', icon: 'fa-vial', border: 'border-teal-500', text: 'text-teal-600', bg: 'bg-teal-100', bar: 'bg-teal-500', searches: ['hemoglobina', 'glicada', 'hba1c'] },
+                    { id: 'pes', shortName: 'Avaliação Pés', name: 'Avaliação Pés', icon: 'fa-shoe-prints', border: 'border-indigo-500', text: 'text-indigo-600', bg: 'bg-indigo-100', bar: 'bg-indigo-500', searches: ['pe', 'pes'], exclude: 'peso', forceCol: 39 }
+                ]
+            },
+            hipertensos: {
+                label: 'C5 - Hipertensos',
+                file: 'acompanhamento-condicao-saude_2026-11-04-15-17 (1).csv',
+                metrics: [
+                    ...COMMON_METRICS,
+                    { id: 'pa', shortName: 'Aferição de PA', name: 'Aferição de PA', icon: 'fa-heart-pulse', border: 'border-rose-500', text: 'text-rose-600', bg: 'bg-rose-100', bar: 'bg-rose-500', searches: ['pressao', 'pa', 'afericao', 'pressão'], forceCol: 33 }
+                ]
+            },
+            gestantes: {
+                label: 'C3 - Gestantes e Puérperas',
+                file: 'acompanhamento-condicao-saude_2026-11-05-07-42 (1).csv',
+                metrics: [
+                    ...COMMON_METRICS,
+                    { id: 'odonto', shortName: 'Odonto', name: 'Atend. Odontológico', icon: 'fa-tooth', border: 'border-purple-500', text: 'text-purple-600', bg: 'bg-purple-100', bar: 'bg-purple-500', searches: ['odonto', 'odontologico', 'odontológico'] },
+                    { id: 'exames', shortName: 'Testes/Exames', name: 'Testes / Exames', icon: 'fa-vial-virus', border: 'border-amber-500', text: 'text-amber-600', bg: 'bg-amber-100', bar: 'bg-amber-500', forceCols: [50, 51, 52, 53, 54, 55], checkSim: true }
+                ]
+            },
+            idosos: {
+                label: 'C6 - Idosos',
+                file: 'acompanhamento-condicao-saude_2026-11-05-08-41.csv',
+                metrics: [
+                    { id: 'consulta_med_12m', shortName: 'Cons. Médica (12m)', hidden: true, forceCol: 21, maxDays: 365 },
+                    { id: 'visita_acs', shortName: 'Visita ACS (12m)', hidden: true, forceCol: 27, maxDays: 365 },
+                    { id: 'peso_altura', shortName: 'Peso/Altura (12m)', hidden: true, forceCol: 31, maxDays: 365 },
+                    { id: 'vacina', shortName: 'Vacina Influenza', name: 'Vacina Influenza', icon: 'fa-syringe', border: 'border-orange-500', text: 'text-orange-600', bg: 'bg-orange-100', bar: 'bg-orange-500', searches: ['vacina', 'influenza', 'imuniza'] }
+                ]
+            },
+            infantil: {
+                label: 'C2 - Desenvolvimento Infantil',
+                file: 'acompanhamento-condicao-saude_2026-11-05-08-44.csv',
+                metrics: [
+                    { id: 'consulta_med_inf', shortName: 'Cons. Médica', hidden: true, forceCol: 21, maxDays: 180 },
+                    { id: 'visita_acs_inf', shortName: 'Visita ACS', hidden: true, forceCol: 27, maxDays: 180 },
+                    { id: 'peso_altura_inf', shortName: 'Peso/Altura', hidden: true, forceCol: 31, maxDays: 180 },
+                    { id: 'vacina_inf', shortName: 'Vacinas', name: 'Vacinação Avaliada', icon: 'fa-child-reaching', border: 'border-sky-500', text: 'text-sky-600', bg: 'bg-sky-100', bar: 'bg-sky-500', searches: ['vacina', 'imuniza', 'polio', 'penta'] }
+                ]
+            },
+            mulher: {
+                label: 'C7 - Saúde da Mulher',
+                file: 'acompanhamento-condicao-saude_2026-11-05-08-47.csv',
+                metrics: [
+                    { id: 'consulta_med_mulher', shortName: 'Cons. Médica (12m)', hidden: true, forceCol: 21, maxDays: 365 },
+                    { id: 'visita_acs_mulher', shortName: 'Visita ACS (12m)', hidden: true, forceCol: 27, maxDays: 365 },
+                    { id: 'cito', shortName: 'Preventivo (36m)', name: 'Citopatológico', icon: 'fa-microscope', border: 'border-pink-500', text: 'text-pink-600', bg: 'bg-pink-100', bar: 'bg-pink-500', searches: ['cito', 'preventivo', 'colo'], maxDays: 1095 },
+                    { id: 'mama', shortName: 'Mamografia (24m)', name: 'Mamografia', icon: 'fa-x-ray', border: 'border-fuchsia-500', text: 'text-fuchsia-600', bg: 'bg-fuchsia-100', bar: 'bg-fuchsia-500', searches: ['mama', 'mamografia'], maxDays: 730 }
+                ]
+            }
+        };
+
+        Chart.defaults.font.family = "'Inter', sans-serif";
+        Chart.defaults.color = '#64748b';
+
+        let charts = {};
+        let currentCondition = 'infantil';
+        let activeTabId = 'geral';
+        let tabCache = { infantil: null, gestantes: null, diabeticos: null, hipertensos: null, idosos: null, mulher: null };
+
+        document.addEventListener('DOMContentLoaded', () => {
+            attemptAutoLoad();
+
+            const setupFileInput = (id) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                el.addEventListener('change', function(e) {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    const reader = new FileReader();
+                    reader.onload = function(event) {
+                        const csvText = decodeCSVText(event.target.result);
+                        processCSVData(csvText);
+                    };
+                    reader.readAsArrayBuffer(file);
+                });
+            };
+
+            setupFileInput('csv-file-header');
+            setupFileInput('csv-file-section');
+        });
+
+        function setCondition(cond) {
+            if (currentCondition === cond) return;
+            currentCondition = cond;
+            
+            Object.keys(CONDITIONS).forEach(k => {
+                const btn = document.getElementById('tab-' + k);
+                if (btn) {
+                    btn.className = k === cond
+                        ? "bg-white text-blue-600 px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-100"
+                        : "bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100";
+                }
+            });
+            
+            document.getElementById('label-total-card').innerText = 'Total de ' + CONDITIONS[cond].label;
+            
+            if (tabCache[currentCondition]) {
+                document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-check-circle text-green-300 mr-1"></i> Dados Em Memória';
+                document.getElementById('upload-section').classList.add('hidden');
+                document.getElementById('loading-state').classList.add('hidden');
+                updateUI(tabCache[currentCondition]);
+            } else {
+                document.getElementById('dashboard-content').classList.add('hidden');
+                document.getElementById('upload-section').classList.add('hidden');
+                document.getElementById('loading-state').classList.remove('hidden');
+                attemptAutoLoad();
+            }
+        }
+
+        async function attemptAutoLoad() {
+            const targetFile = CONDITIONS[currentCondition].file;
+            document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-spinner fa-spin mr-2"></i> Buscando dados...';
+            try {
+                const response = await fetch(targetFile);
+                if (!response.ok) throw new Error('Arquivo não encontrado localmente.');
+                
+                const buffer = await response.arrayBuffer();
+                const csvText = decodeCSVText(buffer);
+                
+                document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-check-circle text-green-300 mr-1"></i> Dados Carregados';
+                processCSVData(csvText);
+            } catch (error) {
+                document.getElementById('status-indicator').innerHTML = '<i class="fa-solid fa-circle-exclamation text-yellow-300 mr-1"></i> Selecione um arquivo';
+                document.getElementById('upload-section').classList.remove('hidden');
+                document.getElementById('loading-state').classList.add('hidden');
+            }
+        }
+
+        function processCSVData(csvText) {
+            document.getElementById('loading-state').classList.remove('hidden');
+            document.getElementById('dashboard-content').classList.add('hidden');
+            document.getElementById('upload-section').classList.add('hidden');
+
+            setTimeout(() => {
+                Papa.parse(csvText, {
+                    skipEmptyLines: false,
+                    delimiter: ';', 
+                    complete: function(results) {
+                        if (results.data.length <= 1 && csvText.includes(',')) {
+                            Papa.parse(csvText, {
+                                skipEmptyLines: false,
+                                delimiter: ',',
+                                complete: function(res2) { extractAndAnalyze(res2.data); }
+                            });
+                        } else {
+                            extractAndAnalyze(results.data);
+                        }
+                    },
+                    error: function(err) {
+                        document.getElementById('loading-state').classList.add('hidden');
+                        document.getElementById('upload-section').classList.remove('hidden');
+                    }
+                });
+            }, 50);
+        }
+
+        function extractAndAnalyze(data) {
+            let headerIdx = 24; 
+            for (let i = 0; i < Math.min(data.length, 50); i++) {
+                if (!data[i]) continue;
+                const rowStr = data[i].join(" ").toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+                if (rowStr.includes("idade") && rowStr.includes("sexo")) {
+                    headerIdx = i;
+                    break;
+                }
+            }
+
+            if (headerIdx >= data.length) {
+                document.getElementById('loading-state').classList.add('hidden');
+                document.getElementById('upload-section').classList.remove('hidden');
+                return;
+            }
+
+            analyzeData(data.slice(headerIdx + 1), data[headerIdx]);
+        }
+
+        function analyzeData(data, fields) {
+            const normalize = str => str.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "").trim();
+            
+            let colMicro = -1, colIdade = -1, colNome = -1, colSexo = -1, colNascimento = -1;
+            let colRua = -1, colNum = -1, colBairro = -1;
+            const currentMetrics = CONDITIONS[currentCondition].metrics;
+            let metricCols = {};
+            currentMetrics.forEach(m => metricCols[m.id] = -1);
+
+            fields.forEach((f, index) => {
+                if (!f) return;
+                const norm = normalize(sanitizeText(f));
+                if (norm.includes("nome") || norm.includes("cidadao") || norm.includes("paciente")) colNome = index;
+                if (norm === "microarea" || norm === "microarea / area" || norm.includes("micro")) colMicro = index;
+                if (norm === "idade" || norm === "idade (anos)") colIdade = index;
+                if (norm === "sexo") colSexo = index;
+                if (norm.includes("nascimento")) colNascimento = index;
+                if (norm === "rua" || norm === "logradouro" || norm === "endereco" || norm === "endereço") colRua = index;
+                if (norm === "numero" || norm === "número" || norm === "n") colNum = index;
+                if (norm === "bairro") colBairro = index;
+                
+                currentMetrics.forEach(m => {
+                    if (!m.searches) return;
+                    const matchSearch = m.searches.some(s => {
+                        if (['pe', 'pes', 'pa'].includes(s)) return new RegExp(`\\b${s}\\b`).test(norm);
+                        return norm.includes(s);
+                    });
+                    const passExclude = m.exclude ? !norm.includes(m.exclude) : true;
+                    if (matchSearch && passExclude) metricCols[m.id] = index;
+                });
+            });
+
+            currentMetrics.forEach(m => {
+                if (metricCols[m.id] === -1 && m.forceCol !== undefined && fields.length > m.forceCol) {
+                    metricCols[m.id] = m.forceCol;
+                }
+            });
+
+            let stats = {
+                total: 0,
+                metricCounts: {},
+                microareas: {},
+                patients: [],
+                sexo: { 'Masculino': 0, 'Feminino': 0 },
+                faixaEtaria: { "0-19 anos": 0, "20-39 anos": 0, "40-59 anos": 0, "60-79 anos": 0, "80+ anos": 0 }
+            };
+            currentMetrics.forEach(m => stats.metricCounts[m.id] = 0);
+
+            const hasDateOrRecent = (val, maxDays) => {
+                if (!val || val === '-') return false;
+                val = String(val).trim();
+                if (val.toUpperCase() === 'SIM') return true;
+                if (/^\d+$/.test(val)) return maxDays === undefined ? true : parseInt(val, 10) <= maxDays;
+                if (/\d{2}\/\d{2}\/\d{2,4}/.test(val)) {
+                    if (!maxDays) return true;
+                    const parts = val.match(/(\d{2})\/(\d{2})\/(\d{2,4})/);
+                    let year = parseInt(parts[3], 10);
+                    if (year < 100) year += 2000;
+                    const dateObj = new Date(year, parseInt(parts[2], 10) - 1, parseInt(parts[1], 10));
+                    const diffDays = Math.ceil(Math.abs(new Date(2026, 10, 5) - dateObj) / (1000 * 60 * 60 * 24));
+                    return diffDays <= maxDays;
+                }
+                return false;
+            };
+
+            data.forEach(row => {
+                if (!row || row.length < 2) return;
+                if (colNome !== -1 && !row[colNome] && colIdade !== -1 && !row[colIdade]) return;
+
+                stats.total++;
+                const nome = sanitizeText((colNome !== -1 && row[colNome]) ? String(row[colNome]).trim() : `Paciente ${stats.total}`);
+                let pMetrics = {};
+
+                const micro = sanitizeText(colMicro !== -1 && row[colMicro] ? String(row[colMicro]).trim() : "Sem Micro");
+                const nascimento = colNascimento !== -1 && row[colNascimento] ? String(row[colNascimento]).trim() : "-";
+                
+                let enderecoParts = [];
+                if (colRua !== -1 && row[colRua]) enderecoParts.push(sanitizeText(String(row[colRua]).trim()));
+                if (colNum !== -1 && row[colNum]) enderecoParts.push(`Nº ${sanitizeText(String(row[colNum]).trim())}`);
+                if (colBairro !== -1 && row[colBairro]) enderecoParts.push(sanitizeText(String(row[colBairro]).trim()));
+                const endereco = enderecoParts.length > 0 ? enderecoParts.join(', ').toUpperCase() : "-";
+
+                let idadeTexto = "-";
+                stats.microareas[micro] = (stats.microareas[micro] || 0) + 1;
+
+                if (colSexo !== -1 && row[colSexo]) {
+                    let s = String(row[colSexo]).trim().toLowerCase();
+                    if (s.startsWith('m')) stats.sexo['Masculino']++;
+                    else if (s.startsWith('f')) stats.sexo['Feminino']++;
+                }
+
+                if (colIdade !== -1 && row[colIdade]) {
+                    let valIdade = String(row[colIdade]).trim();
+                    idadeTexto = valIdade;
+                    let idade = NaN;
+
+                    if (/\d{2}\/\d{2}\/\d{4}/.test(valIdade)) {
+                        const parts = valIdade.match(/(\d{2})\/(\d{2})\/(\d{4})/);
+                        idade = new Date().getFullYear() - parseInt(parts[3], 10);
+                    } else if (valIdade.toLowerCase().includes("menor")) {
+                        idade = 0; 
+                    } else {
+                        const matchIdade = valIdade.match(/^(\d+)/);
+                        if (matchIdade) idade = parseInt(matchIdade[1], 10);
+                    }
+
+                    if (!isNaN(idade)) {
+                        if (idade < 20) stats.faixaEtaria["0-19 anos"]++;
+                        else if (idade < 40) stats.faixaEtaria["20-39 anos"]++;
+                        else if (idade < 60) stats.faixaEtaria["40-59 anos"]++;
+                        else if (idade < 80) stats.faixaEtaria["60-79 anos"]++;
+                        else stats.faixaEtaria["80+ anos"]++;
+                    }
+                }
+
+                currentMetrics.forEach(m => {
+                    let hasMet = false;
+                    if (m.checkSim && m.forceCols) {
+                        m.forceCols.forEach(c => {
+                            if (row.length > c && String(row[c]).trim().toUpperCase() === 'SIM') hasMet = true;
+                        });
+                    } else {
+                        hasMet = metricCols[m.id] !== -1 && hasDateOrRecent(row[metricCols[m.id]], m.maxDays);
+                    }
+                    
+                    pMetrics[m.id] = hasMet;
+                    if (hasMet) {
+                        stats.metricCounts[m.id]++;
+                    }
+                });
+
+                stats.patients.push({ nome, micro, nascimento, endereco, idadeTexto, metrics: pMetrics });
+            });
+
+            tabCache[currentCondition] = stats;
+            updateUI(stats);
+        }
+
+        function updateUI(stats) {
+            document.getElementById('loading-state').classList.add('hidden');
+            document.getElementById('dashboard-content').classList.remove('hidden');
+
+            document.getElementById('kpi-total').innerText = stats.total;
+            document.querySelectorAll('.dynamic-metric').forEach(el => el.remove());
+            
+            const kpiContainer = document.getElementById('kpi-container');
+            const currentMetrics = CONDITIONS[currentCondition].metrics;
+            const visibleMetrics = currentMetrics.filter(m => !m.hidden);
+            
+            kpiContainer.className = visibleMetrics.length <= 2 
+                ? "grid grid-cols-1 md:grid-cols-3 gap-6" 
+                : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6";
+
+            visibleMetrics.forEach(m => {
+                const count = stats.metricCounts[m.id] || 0;
+                const pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+                
+                let pctSubtextHtml = `<span class="text-lg font-bold ${m.text}">(${pct}%)</span>`;
+                let progressBarHtml = `<div class="w-full bg-slate-200 rounded-full h-2 mt-4"><div class="${m.bar} h-2 rounded-full transition-all duration-1000" style="width: 0%" id="bar-${m.id}"></div></div>`;
+
+                const cardHtml = `
+                <div class="dynamic-metric glass-card rounded-2xl p-6 border-l-4 ${m.border}">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">${m.name}</p>
+                            <div class="flex items-baseline space-x-2 mt-2">
+                                <h2 class="text-4xl font-extrabold text-slate-800">${count}</h2>
+                                ${pctSubtextHtml}
+                            </div>
+                        </div>
+                        <div class="${m.bg} p-4 rounded-full ${m.text}">
+                            <i class="fa-solid ${m.icon} text-2xl"></i>
+                        </div>
+                    </div>
+                    ${progressBarHtml}
+                </div>`;
+                
+                kpiContainer.insertAdjacentHTML('beforeend', cardHtml);
+                
+                setTimeout(() => {
+                    const bar = document.getElementById(`bar-${m.id}`);
+                    if(bar) bar.style.width = `${pct}%`;
+                }, 100);
+            });
+
+            // Gerar Abas de Acompanhamento Nominal
+            const tabsContainer = document.getElementById('nominal-tabs');
+            tabsContainer.innerHTML = '';
+            
+            const createTab = (id, text, isDefault) => {
+                const btn = document.createElement('button');
+                btn.className = isDefault 
+                    ? 'nominal-tab px-3 py-1.5 rounded-md text-sm font-bold bg-blue-600 text-white shadow transition-colors'
+                    : 'nominal-tab px-3 py-1.5 rounded-md text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors';
+                btn.innerText = text;
+                btn.onclick = (e) => {
+                    document.querySelectorAll('.nominal-tab').forEach(b => {
+                        b.className = 'nominal-tab px-3 py-1.5 rounded-md text-sm font-semibold bg-slate-100 text-slate-600 hover:bg-slate-200 transition-colors';
+                    });
+                    e.target.className = 'nominal-tab px-3 py-1.5 rounded-md text-sm font-bold bg-blue-600 text-white shadow transition-colors';
+                    renderNominalTable(id);
+                };
+                tabsContainer.appendChild(btn);
+            };
+
+            createTab('geral', 'Matriz Geral', true);
+            currentMetrics.forEach(m => {
+                if (!m.hidePendingTab) {
+                    createTab(m.id, `Pendência: ${m.shortName || m.name}`, false);
+                }
+            });
+
+            const renderNominalTable = (tabId) => {
+                activeTabId = tabId;
+                const content = document.getElementById('nominal-content');
+                const counterMsg = document.getElementById('table-counter-msg');
+                let html = '<table id="nominal-data-table" class="min-w-full text-left text-sm whitespace-nowrap"><thead class="uppercase tracking-wider text-slate-600 font-bold text-xs sticky top-0 bg-slate-100 z-20 shadow-sm"><tr>';
+                
+                if (tabId === 'geral') {
+                    counterMsg.innerHTML = `<i class="fa-solid fa-users mr-1 text-blue-500"></i> Exibindo <span class="text-slate-800 font-bold">${stats.patients.length}</span> pacientes na Matriz Geral.`;
+
+                    html += '<th scope="col" class="px-4 py-3 sticky left-0 top-0 bg-slate-200 z-30 border-b shadow-[1px_0_0_0_#cbd5e1]">Nome do(a) Paciente</th>';
+                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Nascimento</th>';
+                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Idade</th>';
+                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Endereço</th>';
+                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Microárea</th>';
+                    currentMetrics.forEach(m => {
+                        html += `<th scope="col" class="px-4 py-3 text-center bg-slate-100 border-b z-20 sticky top-0">${m.shortName || m.name}</th>`;
+                    });
+                    html += '</tr></thead><tbody class="divide-y divide-slate-100">';
+                    
+                    stats.patients.forEach((p, idx) => {
+                        let bg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                        html += `<tr class="hover:bg-slate-100 transition-colors ${bg}">
+                            <td class="px-4 py-3 sticky left-0 z-10 ${bg} shadow-[1px_0_0_0_#e2e8f0] font-semibold text-slate-700">${p.nome}</td>
+                            <td class="px-4 py-3">${p.nascimento}</td>
+                            <td class="px-4 py-3">${p.idadeTexto}</td>
+                            <td class="px-4 py-3">${p.endereco}</td>
+                            <td class="px-4 py-3">${p.micro}</td>`;
+                        currentMetrics.forEach(m => {
+                            const icon = p.metrics[m.id] 
+                                ? '<i class="fa-solid fa-check text-emerald-500" title="Atingido"></i>' 
+                                : '<i class="fa-solid fa-xmark text-rose-500" title="Pendente"></i>';
+                            html += `<td class="px-4 py-2 text-center">${icon}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+                } else {
+                    const metric = currentMetrics.find(m => m.id === tabId);
+                    const pending = stats.patients.filter(p => !p.metrics[tabId]);
+
+                    counterMsg.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1 text-rose-500"></i> Exibindo <span class="text-slate-800 font-bold">${pending.length}</span> pacientes com pendência em <span class="text-slate-800 font-bold">${metric.name}</span>.`;
+
+                    html += `<th scope="col" class="px-4 py-3 sticky left-0 top-0 bg-slate-200 z-30 border-b shadow-[1px_0_0_0_#cbd5e1]">Pacientes com a Pendência</th>`;
+                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Nascimento</th>';
+                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Idade</th>';
+                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Endereço</th>';
+                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Microárea</th>';
+                    html += '<th scope="col" class="px-4 py-3 text-center bg-slate-100 border-b z-20 sticky top-0 w-32">Status</th>';
+                    html += '</tr></thead><tbody class="divide-y divide-slate-100">';
+                    
+                    if (pending.length === 0) {
+                        html += `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500"><i class="fa-solid fa-face-smile-beam text-3xl text-emerald-500 mb-3 block"></i>Nenhuma pendência para este indicador!</td></tr>`;
+                    } else {
+                        pending.forEach((p, idx) => {
+                            let bg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                            html += `<tr class="hover:bg-slate-100 transition-colors ${bg}">
+                                <td class="px-4 py-3 sticky left-0 z-10 ${bg} shadow-[1px_0_0_0_#e2e8f0] font-semibold text-slate-700">${p.nome}</td>
+                                <td class="px-4 py-3">${p.nascimento}</td>
+                                <td class="px-4 py-3">${p.idadeTexto}</td>
+                                <td class="px-4 py-3">${p.endereco}</td>
+                                <td class="px-4 py-3">${p.micro}</td>
+                                <td class="px-4 py-2 text-center"><span class="bg-rose-100 text-rose-700 px-2 py-1 rounded font-bold text-xs border border-rose-200 shadow-sm">Pendente</span></td>
+                            </tr>`;
+                        });
+                    }
+                }
+                
+                html += '</tbody></table>';
+                content.innerHTML = html;
+            };
+            
+            renderNominalTable('geral');
+
+            // Destruir gráficos anteriores
+            Object.values(charts).forEach(chart => chart.destroy());
+
+            // 1. Faixa Etária
+            const ctxIdade = document.getElementById('chart-idade').getContext('2d');
+            charts.idade = new Chart(ctxIdade, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(stats.faixaEtaria),
+                    datasets: [{
+                        label: 'Pacientes',
+                        data: Object.values(stats.faixaEtaria),
+                        backgroundColor: 'rgba(59, 130, 246, 0.7)',
+                        borderColor: 'rgb(59, 130, 246)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { y: { beginAtZero: true, grid: { borderDash: [4, 4] } } }
+                }
+            });
+
+            // 2. Sexo (Oculto em gestantes e mulher)
+            if (currentCondition === 'gestantes' || currentCondition === 'mulher') {
+                document.getElementById('card-sexo').classList.add('hidden');
+                document.getElementById('charts-container').classList.replace('lg:grid-cols-3', 'lg:grid-cols-2');
+            } else {
+                document.getElementById('card-sexo').classList.remove('hidden');
+                document.getElementById('charts-container').classList.replace('lg:grid-cols-2', 'lg:grid-cols-3');
+                
+                const ctxSexo = document.getElementById('chart-sexo').getContext('2d');
+                charts.sexo = new Chart(ctxSexo, {
+                    type: 'doughnut',
+                    data: {
+                        labels: ['Feminino', 'Masculino'],
+                        datasets: [{
+                            data: [stats.sexo['Feminino'], stats.sexo['Masculino']],
+                            backgroundColor: ['rgba(236, 72, 153, 0.7)', 'rgba(59, 130, 246, 0.7)'],
+                            borderColor: ['rgb(236, 72, 153)', 'rgb(59, 130, 246)'],
+                            borderWidth: 1
+                        }]
+                    },
+                    options: {
+                        responsive: true,
+                        maintainAspectRatio: false,
+                        plugins: { legend: { position: 'bottom' } }
+                    }
+                });
+            }
+
+            // 3. Microárea
+            const microareasOrdenadas = Object.entries(stats.microareas).sort((a, b) => b[1] - a[1]);
+            const ctxMicro = document.getElementById('chart-micro').getContext('2d');
+            charts.micro = new Chart(ctxMicro, {
+                type: 'bar',
+                data: {
+                    labels: microareasOrdenadas.map(m => m[0]),
+                    datasets: [{
+                        label: 'Pacientes por Micro',
+                        data: microareasOrdenadas.map(m => m[1]),
+                        backgroundColor: 'rgba(16, 185, 129, 0.7)',
+                        borderColor: 'rgb(16, 185, 129)',
+                        borderWidth: 1,
+                        borderRadius: 4
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: { legend: { display: false } },
+                    scales: { 
+                        x: { ticks: { maxRotation: 45, minRotation: 45 } },
+                        y: { beginAtZero: true, grid: { borderDash: [4, 4] } } 
+                    }
+                }
+            });
+        }
+
+        // Exportação da tabela nominal principal
+        function exportTable(format) {
+            const table = document.getElementById('nominal-data-table');
+            if (!table) return;
+
+            const conditionName = CONDITIONS[currentCondition].label.replace(/[^a-zA-Z0-9]/g, '_');
+            const tabName = activeTabId === 'geral' ? 'Matriz_Geral' : `Pendencia_${activeTabId}`;
+            const filename = `Acompanhamento_${conditionName}_${tabName}`;
+
+            if (format === 'csv') {
+                let csvContent = [];
+                table.querySelectorAll('tr').forEach(row => {
+                    let data = [];
+                    row.querySelectorAll('th, td').forEach(col => {
+                        let text = col.innerText.trim();
+                        if (col.querySelector('.fa-check')) text = 'ATINGIDO';
+                        if (col.querySelector('.fa-xmark')) text = 'PENDENTE';
+                        data.push('"' + text.replace(/"/g, '""') + '"');
+                    });
+                    csvContent.push(data.join(';'));
+                });
+
+                const blob = new Blob(["\ufeff" + csvContent.join('\n')], { type: 'text/csv;charset=utf-8;' });
+                const link = document.createElement('a');
+                link.href = URL.createObjectURL(blob);
+                link.download = filename + '.csv';
+                link.click();
+            } else if (format === 'xlsx') {
+                let excelData = [];
+                table.querySelectorAll('tr').forEach(row => {
+                    let data = [];
+                    row.querySelectorAll('th, td').forEach(col => {
+                        let text = col.innerText.trim();
+                        if (col.querySelector('.fa-check')) text = 'ATINGIDO';
+                        if (col.querySelector('.fa-xmark')) text = 'PENDENTE';
+                        data.push(text);
+                    });
+                    excelData.push(data);
+                });
+
+                const ws = XLSX.utils.aoa_to_sheet(excelData);
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, ws, "Acompanhamento");
+                XLSX.writeFile(wb, filename + '.xlsx');
+            }
+        }
+    </script>
+</body>
+</html>
