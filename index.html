@@ -77,7 +77,7 @@
     <!-- Main Content -->
     <main class="flex-grow max-w-[96%] mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
         
-        <!-- Fallback Upload (Exibido quando arquivo local falha) -->
+        <!-- Fallback Upload -->
         <div id="upload-section" class="hidden mb-8 bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded-r-md shadow-sm">
             <div class="flex items-center justify-between flex-wrap gap-4">
                 <div>
@@ -103,7 +103,7 @@
         <div id="dashboard-content" class="hidden space-y-6">
             
             <!-- KPIs -->
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-6" id="kpi-container">
+            <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6" id="kpi-container">
                 <!-- Card Total -->
                 <div class="glass-card rounded-2xl p-6 border-l-4 border-blue-500" id="card-total">
                     <div class="flex items-center justify-between">
@@ -116,6 +116,35 @@
                         </div>
                     </div>
                 </div>
+
+                <!-- Card de Score Geral -->
+                <div class="glass-card rounded-2xl p-6 flex flex-col justify-center items-center border-t-4" id="score-card">
+                    <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Score do Indicador</h3>
+                    <div class="relative w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center rounded-full border-8" id="score-circle">
+                        <span class="text-3xl sm:text-4xl font-extrabold text-slate-800" id="score-value">0</span>
+                    </div>
+                    <div class="mt-4 px-4 py-1 rounded-full text-sm font-bold shadow-sm" id="score-parameter">
+                        -
+                    </div>
+                </div>
+            </div>
+
+            <!-- Tabela de Boas Práticas -->
+            <div class="glass-card rounded-2xl p-6 overflow-x-auto">
+                <h3 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2"><i class="fa-solid fa-list-check mr-2 text-blue-600"></i>Boas Práticas e Desempenho</h3>
+                <table class="min-w-full text-left text-sm">
+                    <thead class="bg-slate-50 text-slate-600 font-bold uppercase text-xs">
+                        <tr>
+                            <th class="p-3 rounded-tl-lg">Descrição da Boa Prática</th>
+                            <th class="p-3 text-center w-24">Alcance</th>
+                            <th class="p-3 text-center w-28">Realizados</th>
+                            <th class="p-3 text-center w-28 rounded-tr-lg">Pendentes</th>
+                        </tr>
+                    </thead>
+                    <tbody id="boas-praticas-body" class="divide-y divide-slate-100">
+                        <!-- Injetado via JS -->
+                    </tbody>
+                </table>
             </div>
 
             <!-- Gráficos -->
@@ -152,9 +181,19 @@
                     <div class="flex flex-wrap gap-2 justify-start lg:justify-end" id="nominal-tabs"></div>
                 </div>
                 
-                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between mb-4 gap-2 flex-wrap">
                     <div class="text-sm font-semibold text-slate-500" id="table-counter-msg"></div>
-                    <div class="flex items-center space-x-2">
+                    <div class="flex flex-wrap items-center gap-2">
+                        <!-- Filtro por Microárea -->
+                        <div class="relative">
+                            <select id="microarea-filter" onchange="filterNominalTable()" class="bg-white border border-slate-300 text-slate-700 text-xs font-medium rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 shadow-sm">
+                                <option value="todas">Todas as Microáreas</option>
+                            </select>
+                        </div>
+                        <div class="relative">
+                            <input type="text" id="nominal-search" placeholder="Buscar paciente..." oninput="filterNominalTable()" class="bg-white border border-slate-300 text-slate-700 text-xs rounded-lg pl-8 pr-3 py-1.5 focus:outline-none focus:border-blue-500 shadow-sm w-48">
+                            <i class="fa-solid fa-search absolute left-2.5 top-2 text-slate-400 text-xs"></i>
+                        </div>
                         <button onclick="exportTable('csv')" class="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-3 py-1.5 rounded shadow transition-colors flex items-center">
                             <i class="fa-solid fa-file-csv mr-1.5 text-sm"></i> Exportar CSV
                         </button>
@@ -228,8 +267,8 @@
                 .replace(/Ã³/g, 'ó').replace(/Ã“/g, 'Ó')
                 .replace(/Ãº/g, 'ú').replace(/Ãš/g, 'Ú')
                 .replace(/Ãª/g, 'ê').replace(/ÃÊ/g, 'Ê')
-                .replace(/Ã´/g, 'ô').replace(/Ã/g, 'Ô')
-                .replace(/Ã /g, 'à').replace(/Ã/g, 'À')
+                .replace(/Ã´/g, 'ô').replace(/Ã”/g, 'Ô')
+                .replace(/Ã /g, 'à').replace(/Ã€/g, 'À')
                 .trim();
         }
 
@@ -258,68 +297,75 @@
                 .trim();
         }
 
-        const COMMON_METRICS = [
-            { id: 'consulta_med', shortName: 'Cons. Médica (6m)', hidden: true, forceCol: 21, maxDays: 180 }, 
-            { id: 'visita_acs', shortName: 'Visita ACS (12m)', hidden: true, forceCol: 27, maxDays: 365 },   
-            { id: 'peso_altura', shortName: 'Peso/Altura (12m)', hidden: true, forceCol: 31, maxDays: 365 },  
-            { id: 'pa_recente', shortName: 'Aferição PA (6m)', hidden: true, forceCol: 33, maxDays: 180 }    
-        ];
-
         const CONDITIONS = {
-            diabeticos: {
-                label: 'C4 - Diabéticos',
-                file: 'acompanhamento-condicao-saude_2026-11-04-15-17.csv',
+            infantil: {
+                label: 'C2 - Desenvolvimento Infantil',
+                file: 'acompanhamento-condicao-saude_2026-11-05-08-44.csv',
                 metrics: [
-                    ...COMMON_METRICS,
-                    { id: 'hba1c', shortName: 'Solic. HbA1c', name: 'HBA1C Solicitada', icon: 'fa-vial', border: 'border-teal-500', text: 'text-teal-600', bg: 'bg-teal-100', bar: 'bg-teal-500', searches: ['hemoglobina', 'glicada', 'hba1c'] },
-                    { id: 'pes', shortName: 'Avaliação Pés', name: 'Avaliação Pés', icon: 'fa-shoe-prints', border: 'border-indigo-500', text: 'text-indigo-600', bg: 'bg-indigo-100', bar: 'bg-indigo-500', searches: ['pe', 'pes'], exclude: 'peso', forceCol: 39 }
-                ]
-            },
-            hipertensos: {
-                label: 'C5 - Hipertensos',
-                file: 'acompanhamento-condicao-saude_2026-11-04-15-17 (1).csv',
-                metrics: [
-                    ...COMMON_METRICS,
-                    { id: 'pa', shortName: 'Aferição de PA', name: 'Aferição de PA', icon: 'fa-heart-pulse', border: 'border-rose-500', text: 'text-rose-600', bg: 'bg-rose-100', bar: 'bg-rose-500', searches: ['pressao', 'pa', 'afericao', 'pressão'], forceCol: 33 }
+                    { id: 'consulta_1', shortName: '1ª Cons. (30d)', bpDesc: 'Ter a 1ª consulta presencial realizada por médica(o) ou enfermeira(o), até o 30º dia de vida.', points: 20, hidden: true, forceCol: 21 },
+                    { id: 'consulta_med_inf', shortName: '9 Consultas (2a)', bpDesc: 'Ter pelo menos 09 (nove) consultas presenciais ou remotas realizadas por médica(o) ou enfermeira(o) até dois anos de vida.', points: 20, hidden: true, forceCol: 21, maxDays: 730 },
+                    { id: 'peso_altura_inf', shortName: '9 Pesos/Alturas', bpDesc: 'Ter pelo menos 09 (nove) registros simultâneos de peso e altura até os dois anos de vida.', points: 20, hidden: true, forceCol: 31, maxDays: 730 },
+                    { id: 'visita_acs_inf', shortName: '2 Visitas ACS', bpDesc: 'Ter pelo menos 02 (duas) visitas domiciliares realizadas por ACS/TACS, sendo a primeira até os 30 dias e a segunda até 6 meses.', points: 20, hidden: true, forceCol: 27, maxDays: 180 },
+                    { id: 'vacina_inf', shortName: 'Vacinas', bpDesc: 'Ter vacinas contra difteria, tétano, coqueluche, hepatite B, infecções por Haemophilus influenza e tipo b, poliomielite, sarampo, caxumba e rubéola, pneumocócica, com todas as doses.', points: 20, name: 'Vacinação Avaliada', icon: 'fa-child-reaching', border: 'border-sky-500', text: 'text-sky-600', bg: 'bg-sky-100', bar: 'bg-sky-500', searches: ['vacina', 'imuniza', 'polio', 'penta'] }
                 ]
             },
             gestantes: {
                 label: 'C3 - Gestantes e Puérperas',
                 file: 'acompanhamento-condicao-saude_2026-11-05-07-42 (1).csv',
                 metrics: [
-                    ...COMMON_METRICS,
-                    { id: 'odonto', shortName: 'Odonto', name: 'Atend. Odontológico', icon: 'fa-tooth', border: 'border-purple-500', text: 'text-purple-600', bg: 'bg-purple-100', bar: 'bg-purple-500', searches: ['odonto', 'odontologico', 'odontológico'] },
-                    { id: 'exames', shortName: 'Testes/Exames', name: 'Testes / Exames', icon: 'fa-vial-virus', border: 'border-amber-500', text: 'text-amber-600', bg: 'bg-amber-100', bar: 'bg-amber-500', forceCols: [50, 51, 52, 53, 54, 55], checkSim: true }
+                    { id: 'cons_12s', shortName: '1ª Cons. (12 sem)', bpDesc: 'Ter a 1ª consulta presencial ou remota realizada por médica(o) ou enfermeira(o), até a 12ª semana de gestação.', points: 10, hidden: true, forceCol: 21 },
+                    { id: 'cons_7', shortName: '7 Consultas', bpDesc: 'Ter pelo menos 07 (sete) consultas presenciais ou remotas realizadas por médica(o) ou enfermeira(o) durante a gestação.', points: 9, hidden: true, forceCol: 21 },
+                    { id: 'pa_7', shortName: '7 Aferições PA', bpDesc: 'Ter pelo menos 07 (sete) registros de aferição de pressão arterial realizados durante o período da gestação.', points: 9, hidden: true, forceCol: 33 },
+                    { id: 'peso_7', shortName: '7 Pesos/Alturas', bpDesc: 'Ter pelo menos 07 (sete) registros simultâneos de peso e altura durante o período da gestação.', points: 9, hidden: true, forceCol: 31 },
+                    { id: 'vd_3', shortName: '3 Visitas ACS', bpDesc: 'Ter pelo menos 03 (três) visitas domiciliares realizadas por ACS/TACS, após a primeira consulta do pré-natal.', points: 9, hidden: true, forceCol: 27 },
+                    { id: 'vac_dtpa', shortName: 'Vacina dTpa', bpDesc: 'Ter vacina acelular contra difteria, tétano, coqueluche (dTpa) registrada a partir da 20ª semana.', points: 9, hidden: true, forceCol: 46, notDash: true },
+                    { id: 'testes_1tri', shortName: 'Testes 1º Tri', bpDesc: 'Ter registro dos testes rápidos ou exames para sífilis, HIV e hepatites B e C no 1º trimestre.', points: 9, hidden: true, forceCols: [50, 51, 52, 53], requireAllSim: true },
+                    { id: 'testes_3tri', shortName: 'Testes 3º Tri', bpDesc: 'Ter registro dos testes rápidos ou exames para sífilis e HIV realizados no 3º trimestre.', points: 9, hidden: true, forceCols: [54, 55], requireAllSim: true },
+                    { id: 'cons_puerp', shortName: 'Cons. Puerpério', bpDesc: 'Ter pelo menos 01 (um) registro de consulta durante o puerpério.', points: 9, hidden: true },
+                    { id: 'vd_puerp', shortName: 'Visita Puerpério', bpDesc: 'Ter pelo menos 01 (uma) visita domiciliar por ACS/TACS durante o puerpério.', points: 9, hidden: true },
+                    { id: 'odonto', shortName: 'Odonto', bpDesc: 'Ter pelo menos 01 (uma) atividade em saúde bucal durante a gestação.', points: 9, name: 'Atend. Odontológico', icon: 'fa-tooth', border: 'border-purple-500', text: 'text-purple-600', bg: 'bg-purple-100', bar: 'bg-purple-500', searches: ['odonto', 'odontologico', 'odontológico'] }
+                ]
+            },
+            diabeticos: {
+                label: 'C4 - Diabéticos',
+                file: 'acompanhamento-condicao-saude_2026-11-04-15-17.csv',
+                metrics: [
+                    { id: 'consulta_med', shortName: 'Cons. Médica (6m)', bpDesc: 'Ter pelo menos 01 (uma) consulta presencial ou remota realizadas por médica(o) ou enfermeira(o), nos últimos 06 (seis) meses.', points: 20, hidden: true, forceCol: 21, maxDays: 180 }, 
+                    { id: 'pa_recente', shortName: 'Aferição PA (6m)', bpDesc: 'Ter pelo menos 01 (um) registro de aferição de pressão arterial realizado nos últimos 06 (seis) meses.', points: 15, hidden: true, forceCol: 33, maxDays: 180 },
+                    { id: 'peso_altura', shortName: 'Peso/Altura (12m)', bpDesc: 'Ter pelo menos 01 (um) registro simultâneos de peso e altura realizado nos últimos 12 (doze) meses.', points: 15, hidden: true, forceCol: 31, maxDays: 365 },  
+                    { id: 'visita_acs', shortName: 'Visita ACS (12m)', bpDesc: 'Ter pelo menos 02 (duas) visitas domiciliares realizadas por ACS/TACS, com intervalo mínimo de 30 (trinta) dias, nos últimos 12 (doze) meses.', points: 20, hidden: true, forceCol: 27, maxDays: 365 },
+                    { id: 'hba1c', shortName: 'Solic. HbA1c', bpDesc: 'Ter pelo menos 01 (um) registro de solicitação de hemoglobina glicada realizada ou avaliada, nos últimos 12 (doze) meses.', points: 15, name: 'HBA1C Solicitada', icon: 'fa-vial', border: 'border-teal-500', text: 'text-teal-600', bg: 'bg-teal-100', bar: 'bg-teal-500', searches: ['hemoglobina', 'glicada', 'hba1c'] },
+                    { id: 'pes', shortName: 'Avaliação Pés', bpDesc: 'Ter pelo menos 01 (uma) avaliação dos pés realizada nos últimos 12 (doze) meses.', points: 15, name: 'Avaliação Pés', icon: 'fa-shoe-prints', border: 'border-indigo-500', text: 'text-indigo-600', bg: 'bg-indigo-100', bar: 'bg-indigo-500', searches: ['pe', 'pes'], exclude: 'peso', forceCol: 39 }
+                ]
+            },
+            hipertensos: {
+                label: 'C5 - Hipertensos',
+                file: 'acompanhamento-condicao-saude_2026-11-04-15-17 (1).csv',
+                metrics: [
+                    { id: 'consulta_med', shortName: 'Cons. Médica (6m)', bpDesc: 'Ter pelo menos 01 (uma) consulta presencial ou remota realizadas por médica(o) ou enfermeira(o), nos últimos 06 (seis) meses.', points: 25, hidden: true, forceCol: 21, maxDays: 180 },
+                    { id: 'pa', shortName: 'Aferição de PA (6m)', bpDesc: 'Ter pelo menos 01 (um) registro de aferição de pressão arterial realizado nos últimos 06 (seis) meses.', points: 25, name: 'Aferição de PA', icon: 'fa-heart-pulse', border: 'border-rose-500', text: 'text-rose-600', bg: 'bg-rose-100', bar: 'bg-rose-500', searches: ['pressao', 'pa', 'afericao', 'pressão'], forceCol: 33, maxDays: 180 },
+                    { id: 'peso_altura', shortName: 'Peso/Altura (12m)', bpDesc: 'Ter pelo menos 01 (um) registro simultâneos de peso e altura realizado nos últimos 12 (doze) meses.', points: 25, hidden: true, forceCol: 31, maxDays: 365 },
+                    { id: 'visita_acs', shortName: 'Visita ACS (12m)', bpDesc: 'Ter pelo menos 02 (duas) visitas domiciliares realizadas por ACS/TACS, com intervalo mínimo de 30 (trinta) dias, nos últimos 12 (doze) meses.', points: 25, hidden: true, forceCol: 27, maxDays: 365 }
                 ]
             },
             idosos: {
                 label: 'C6 - Idosos',
                 file: 'acompanhamento-condicao-saude_2026-11-05-08-41.csv',
                 metrics: [
-                    { id: 'consulta_med_12m', shortName: 'Cons. Médica (12m)', hidden: true, forceCol: 21, maxDays: 365 },
-                    { id: 'visita_acs', shortName: 'Visita ACS (12m)', hidden: true, forceCol: 27, maxDays: 365 },
-                    { id: 'peso_altura', shortName: 'Peso/Altura (12m)', hidden: true, forceCol: 31, maxDays: 365 },
-                    { id: 'vacina', shortName: 'Vacina Influenza', name: 'Vacina Influenza', icon: 'fa-syringe', border: 'border-orange-500', text: 'text-orange-600', bg: 'bg-orange-100', bar: 'bg-orange-500', searches: ['vacina', 'influenza', 'imuniza'] }
-                ]
-            },
-            infantil: {
-                label: 'C2 - Desenvolvimento Infantil',
-                file: 'acompanhamento-condicao-saude_2026-11-05-08-44.csv',
-                metrics: [
-                    { id: 'consulta_med_inf', shortName: 'Cons. Médica', hidden: true, forceCol: 21, maxDays: 180 },
-                    { id: 'visita_acs_inf', shortName: 'Visita ACS', hidden: true, forceCol: 27, maxDays: 180 },
-                    { id: 'peso_altura_inf', shortName: 'Peso/Altura', hidden: true, forceCol: 31, maxDays: 180 },
-                    { id: 'vacina_inf', shortName: 'Vacinas', name: 'Vacinação Avaliada', icon: 'fa-child-reaching', border: 'border-sky-500', text: 'text-sky-600', bg: 'bg-sky-100', bar: 'bg-sky-500', searches: ['vacina', 'imuniza', 'polio', 'penta'] }
+                    { id: 'consulta_med_12m', shortName: 'Cons. Médica (12m)', bpDesc: 'Ter realizado pelo menos 01 (uma) consulta por profissional médica(o) ou enfermeira(o) nos últimos 12 meses.', points: 25, hidden: true, forceCol: 21, maxDays: 365 },
+                    { id: 'peso_altura', shortName: 'Peso/Altura (12m)', bpDesc: 'Ter realizado pelo menos 01 (um) registro simultâneo de peso e altura nos últimos 12 meses.', points: 25, hidden: true, forceCol: 31, maxDays: 365 },
+                    { id: 'visita_acs', shortName: 'Visita ACS (12m)', bpDesc: 'Ter pelo menos 02 (duas) visitas domiciliares realizadas por ACS/TACS, com intervalo mínimo de 30 dias, nos últimos 12 meses.', points: 25, hidden: true, forceCol: 27, maxDays: 365 },
+                    { id: 'vacina', shortName: 'Vacina Influenza', bpDesc: 'Ter registro de 1 (uma) dose da vacina contra influenza realizada nos últimos 12 meses.', points: 25, name: 'Vacina Influenza', icon: 'fa-syringe', border: 'border-orange-500', text: 'text-orange-600', bg: 'bg-orange-100', bar: 'bg-orange-500', searches: ['vacina', 'influenza', 'imuniza'] }
                 ]
             },
             mulher: {
                 label: 'C7 - Saúde da Mulher',
                 file: 'acompanhamento-condicao-saude_2026-11-05-08-47.csv',
                 metrics: [
-                    { id: 'consulta_med_mulher', shortName: 'Cons. Médica (12m)', hidden: true, forceCol: 21, maxDays: 365 },
-                    { id: 'visita_acs_mulher', shortName: 'Visita ACS (12m)', hidden: true, forceCol: 27, maxDays: 365 },
-                    { id: 'cito', shortName: 'Preventivo (36m)', name: 'Citopatológico', icon: 'fa-microscope', border: 'border-pink-500', text: 'text-pink-600', bg: 'bg-pink-100', bar: 'bg-pink-500', searches: ['cito', 'preventivo', 'colo'], maxDays: 1095 },
-                    { id: 'mama', shortName: 'Mamografia (24m)', name: 'Mamografia', icon: 'fa-x-ray', border: 'border-fuchsia-500', text: 'text-fuchsia-600', bg: 'bg-fuchsia-100', bar: 'bg-fuchsia-500', searches: ['mama', 'mamografia'], maxDays: 730 }
+                    { id: 'cito', shortName: 'Preventivo (36m)', bpDesc: 'Ter pelo menos 01 (um) exame de rastreamento para câncer do colo do útero em mulheres e homens transgênero de 25 a 64 anos nos últimos 36 meses.', points: 20, name: 'Citopatológico', icon: 'fa-microscope', border: 'border-pink-500', text: 'text-pink-600', bg: 'bg-pink-100', bar: 'bg-pink-500', searches: ['cito', 'preventivo', 'colo'], maxDays: 1095 },
+                    { id: 'hpv', shortName: 'Vacina HPV', bpDesc: 'Ter pelo menos 01 (uma) dose da vacina HPV para crianças e adolescentes do sexo feminino de 09 a 14 anos de idade.', points: 30, hidden: true },
+                    { id: 'saude_sexual', shortName: 'Atenção Saúde Sexual', bpDesc: 'Ter pelo 01 (um) atendimento presencial ou remoto sobre atenção à saúde sexual e reprodutiva nos últimos 12 meses.', points: 30, hidden: true },
+                    { id: 'mama', shortName: 'Mamografia (24m)', bpDesc: 'Ter registro de pelo menos 01 (um) exame de rastreamento para câncer de mama de 50 a 69 anos nos últimos 24 meses.', points: 20, name: 'Mamografia', icon: 'fa-x-ray', border: 'border-fuchsia-500', text: 'text-fuchsia-600', bg: 'bg-fuchsia-100', bar: 'bg-fuchsia-500', searches: ['mama', 'mamografia'], maxDays: 730 }
                 ]
             }
         };
@@ -331,6 +377,7 @@
         let currentCondition = 'infantil';
         let activeTabId = 'geral';
         let tabCache = { infantil: null, gestantes: null, diabeticos: null, hipertensos: null, idosos: null, mulher: null };
+        let currentPatientsList = [];
 
         document.addEventListener('DOMContentLoaded', () => {
             attemptAutoLoad();
@@ -566,7 +613,25 @@
 
                 currentMetrics.forEach(m => {
                     let hasMet = false;
-                    if (m.checkSim && m.forceCols) {
+                    if (m.requireAllSim && m.forceCols) {
+                        hasMet = true;
+                        m.forceCols.forEach(c => {
+                            if (row.length > c) {
+                                let val = String(row[c]).trim().toUpperCase();
+                                if (val !== 'SIM' && val !== 'NAO_SE_APLICA' && val !== 'NÃO SE APLICA') {
+                                    hasMet = false;
+                                }
+                            } else {
+                                hasMet = false;
+                            }
+                        });
+                    } else if (m.notDash) {
+                        let colIdx = metricCols[m.id];
+                        if (colIdx !== -1 && row.length > colIdx) {
+                            let val = String(row[colIdx]).trim();
+                            hasMet = (val !== '' && val !== '-');
+                        }
+                    } else if (m.checkSim && m.forceCols) {
                         m.forceCols.forEach(c => {
                             if (row.length > c && String(row[c]).trim().toUpperCase() === 'SIM') hasMet = true;
                         });
@@ -591,16 +656,93 @@
             document.getElementById('loading-state').classList.add('hidden');
             document.getElementById('dashboard-content').classList.remove('hidden');
 
+            const currentMetrics = CONDITIONS[currentCondition].metrics;
+            
+            // 1. Cálculo de Score Geral
+            let totalPointsAchieved = 0;
+            
+            stats.patients.forEach(p => {
+                currentMetrics.forEach(m => {
+                    if (p.metrics[m.id]) {
+                        totalPointsAchieved += (m.points || 0);
+                    }
+                });
+            });
+
+            // Média de pontuação por paciente 
+            let finalScore = stats.total > 0 ? (totalPointsAchieved / stats.total).toFixed(1) : 0;
+            document.getElementById('score-value').innerText = finalScore;
+
+            // Define o Parâmetro e as Cores com base na regra do Ministério da Saúde
+            let scoreParam = document.getElementById('score-parameter');
+            let scoreCircle = document.getElementById('score-circle');
+            let scoreCard = document.getElementById('score-card');
+            
+            scoreParam.className = "mt-4 px-4 py-1 rounded-full text-sm font-bold shadow-sm";
+            scoreCircle.className = "relative w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center rounded-full border-8";
+            scoreCard.className = "glass-card rounded-2xl p-6 flex flex-col justify-center items-center border-t-4";
+
+            if (finalScore > 75) {
+                scoreParam.innerText = "Ótimo";
+                scoreParam.classList.add('bg-emerald-100', 'text-emerald-700');
+                scoreCircle.classList.add('border-emerald-500');
+                scoreCard.classList.add('border-emerald-500');
+            } else if (finalScore > 50) {
+                scoreParam.innerText = "Bom";
+                scoreParam.classList.add('bg-blue-100', 'text-blue-700');
+                scoreCircle.classList.add('border-blue-500');
+                scoreCard.classList.add('border-blue-500');
+            } else if (finalScore > 25) {
+                scoreParam.innerText = "Suficiente";
+                scoreParam.classList.add('bg-yellow-100', 'text-yellow-700');
+                scoreCircle.classList.add('border-yellow-400');
+                scoreCard.classList.add('border-yellow-400');
+            } else {
+                scoreParam.innerText = "Regular";
+                scoreParam.classList.add('bg-rose-100', 'text-rose-700');
+                scoreCircle.classList.add('border-rose-500');
+                scoreCard.classList.add('border-rose-500');
+            }
+
+            // 2. Preenchimento da Tabela de Boas Práticas
+            const tbody = document.getElementById('boas-praticas-body');
+            tbody.innerHTML = '';
+            
+            currentMetrics.forEach(m => {
+                let count = stats.metricCounts[m.id] || 0;
+                let pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+                let notDone = stats.total - count;
+                
+                let row = `
+                <tr class="hover:bg-slate-100 transition-colors">
+                    <td class="p-3 border-b">
+                        <div class="font-bold text-slate-800">${m.shortName || m.name} 
+                            <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded ml-2 font-bold">${m.points} pts</span>
+                        </div>
+                        <div class="text-xs text-slate-500 mt-1 whitespace-normal">${m.bpDesc}</div>
+                    </td>
+                    <td class="p-3 border-b text-center font-extrabold text-slate-700">
+                        ${pct}%
+                    </td>
+                    <td class="p-3 border-b text-center font-bold text-emerald-600">
+                        ${count}
+                    </td>
+                    <td class="p-3 border-b text-center font-bold text-rose-500">
+                        ${notDone}
+                    </td>
+                </tr>`;
+                tbody.insertAdjacentHTML('beforeend', row);
+            });
+
+            // Resto da função updateUI original
             document.getElementById('kpi-total').innerText = stats.total;
             document.querySelectorAll('.dynamic-metric').forEach(el => el.remove());
             
             const kpiContainer = document.getElementById('kpi-container');
-            const currentMetrics = CONDITIONS[currentCondition].metrics;
             const visibleMetrics = currentMetrics.filter(m => !m.hidden);
             
-            kpiContainer.className = visibleMetrics.length <= 2 
-                ? "grid grid-cols-1 md:grid-cols-3 gap-6" 
-                : "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6";
+            // Layout flexível para acomodar Total, Score e os KPIs extras.
+            kpiContainer.className = "grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6";
 
             visibleMetrics.forEach(m => {
                 const count = stats.metricCounts[m.id] || 0;
@@ -661,74 +803,33 @@
                 }
             });
 
+            // Popular select de microáreas
+            const microSelect = document.getElementById('microarea-filter');
+            if (microSelect) {
+                const micros = Object.keys(stats.microareas || {}).sort((a, b) => {
+                    if (a === 'Sem Micro') return 1;
+                    if (b === 'Sem Micro') return -1;
+                    return a.localeCompare(b, undefined, { numeric: true });
+                });
+                
+                let microOpts = '<option value="todas">Todas as Microáreas</option>';
+                micros.forEach(micro => {
+                    microOpts += `<option value="${micro}">${micro}</option>`;
+                });
+                microSelect.innerHTML = microOpts;
+                microSelect.value = 'todas';
+            }
+
             const renderNominalTable = (tabId) => {
                 activeTabId = tabId;
-                const content = document.getElementById('nominal-content');
-                const counterMsg = document.getElementById('table-counter-msg');
-                let html = '<table id="nominal-data-table" class="min-w-full text-left text-sm whitespace-nowrap"><thead class="uppercase tracking-wider text-slate-600 font-bold text-xs sticky top-0 bg-slate-100 z-20 shadow-sm"><tr>';
+                currentPatientsList = tabId === 'geral' 
+                    ? stats.patients 
+                    : stats.patients.filter(p => !p.metrics[tabId]);
                 
-                if (tabId === 'geral') {
-                    counterMsg.innerHTML = `<i class="fa-solid fa-users mr-1 text-blue-500"></i> Exibindo <span class="text-slate-800 font-bold">${stats.patients.length}</span> pacientes na Matriz Geral.`;
-
-                    html += '<th scope="col" class="px-4 py-3 sticky left-0 top-0 bg-slate-200 z-30 border-b shadow-[1px_0_0_0_#cbd5e1]">Nome do(a) Paciente</th>';
-                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Nascimento</th>';
-                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Idade</th>';
-                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Endereço</th>';
-                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Microárea</th>';
-                    currentMetrics.forEach(m => {
-                        html += `<th scope="col" class="px-4 py-3 text-center bg-slate-100 border-b z-20 sticky top-0">${m.shortName || m.name}</th>`;
-                    });
-                    html += '</tr></thead><tbody class="divide-y divide-slate-100">';
-                    
-                    stats.patients.forEach((p, idx) => {
-                        let bg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
-                        html += `<tr class="hover:bg-slate-100 transition-colors ${bg}">
-                            <td class="px-4 py-3 sticky left-0 z-10 ${bg} shadow-[1px_0_0_0_#e2e8f0] font-semibold text-slate-700">${p.nome}</td>
-                            <td class="px-4 py-3">${p.nascimento}</td>
-                            <td class="px-4 py-3">${p.idadeTexto}</td>
-                            <td class="px-4 py-3">${p.endereco}</td>
-                            <td class="px-4 py-3">${p.micro}</td>`;
-                        currentMetrics.forEach(m => {
-                            const icon = p.metrics[m.id] 
-                                ? '<i class="fa-solid fa-check text-emerald-500" title="Atingido"></i>' 
-                                : '<i class="fa-solid fa-xmark text-rose-500" title="Pendente"></i>';
-                            html += `<td class="px-4 py-2 text-center">${icon}</td>`;
-                        });
-                        html += '</tr>';
-                    });
-                } else {
-                    const metric = currentMetrics.find(m => m.id === tabId);
-                    const pending = stats.patients.filter(p => !p.metrics[tabId]);
-
-                    counterMsg.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1 text-rose-500"></i> Exibindo <span class="text-slate-800 font-bold">${pending.length}</span> pacientes com pendência em <span class="text-slate-800 font-bold">${metric.name}</span>.`;
-
-                    html += `<th scope="col" class="px-4 py-3 sticky left-0 top-0 bg-slate-200 z-30 border-b shadow-[1px_0_0_0_#cbd5e1]">Pacientes com a Pendência</th>`;
-                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Nascimento</th>';
-                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Idade</th>';
-                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Endereço</th>';
-                    html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Microárea</th>';
-                    html += '<th scope="col" class="px-4 py-3 text-center bg-slate-100 border-b z-20 sticky top-0 w-32">Status</th>';
-                    html += '</tr></thead><tbody class="divide-y divide-slate-100">';
-                    
-                    if (pending.length === 0) {
-                        html += `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500"><i class="fa-solid fa-face-smile-beam text-3xl text-emerald-500 mb-3 block"></i>Nenhuma pendência para este indicador!</td></tr>`;
-                    } else {
-                        pending.forEach((p, idx) => {
-                            let bg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
-                            html += `<tr class="hover:bg-slate-100 transition-colors ${bg}">
-                                <td class="px-4 py-3 sticky left-0 z-10 ${bg} shadow-[1px_0_0_0_#e2e8f0] font-semibold text-slate-700">${p.nome}</td>
-                                <td class="px-4 py-3">${p.nascimento}</td>
-                                <td class="px-4 py-3">${p.idadeTexto}</td>
-                                <td class="px-4 py-3">${p.endereco}</td>
-                                <td class="px-4 py-3">${p.micro}</td>
-                                <td class="px-4 py-2 text-center"><span class="bg-rose-100 text-rose-700 px-2 py-1 rounded font-bold text-xs border border-rose-200 shadow-sm">Pendente</span></td>
-                            </tr>`;
-                        });
-                    }
-                }
+                document.getElementById('nominal-search').value = '';
+                if(document.getElementById('microarea-filter')) document.getElementById('microarea-filter').value = 'todas';
                 
-                html += '</tbody></table>';
-                content.innerHTML = html;
+                buildTableHtml(currentPatientsList, tabId);
             };
             
             renderNominalTable('geral');
@@ -813,6 +914,99 @@
                     }
                 }
             });
+        }
+
+        function filterNominalTable() {
+            if (!tabCache[currentCondition]) return;
+            const stats = tabCache[currentCondition];
+            const baseList = activeTabId === 'geral' 
+                ? stats.patients 
+                : stats.patients.filter(p => !p.metrics[activeTabId]);
+
+            const searchTerm = document.getElementById('nominal-search').value.toLowerCase().trim();
+            const selectedMicro = document.getElementById('microarea-filter').value;
+
+            const filtered = baseList.filter(p => {
+                const matchSearch = p.nome.toLowerCase().includes(searchTerm) || p.nascimento.toLowerCase().includes(searchTerm) || p.endereco.toLowerCase().includes(searchTerm);
+                const matchMicro = selectedMicro === 'todas' || p.micro === selectedMicro;
+                return matchSearch && matchMicro;
+            });
+
+            buildTableHtml(filtered, activeTabId, true);
+        }
+
+        function buildTableHtml(patientsToDisplay, tabId, isFiltered = false) {
+            const content = document.getElementById('nominal-content');
+            const counterMsg = document.getElementById('table-counter-msg');
+            const currentMetrics = CONDITIONS[currentCondition].metrics;
+            let html = '<table id="nominal-data-table" class="min-w-full text-left text-sm whitespace-nowrap"><thead class="uppercase tracking-wider text-slate-600 font-bold text-xs sticky top-0 bg-slate-100 z-20 shadow-sm"><tr>';
+            
+            const totalCount = tabCache[currentCondition] ? tabCache[currentCondition].patients.length : 0;
+
+            if (tabId === 'geral') {
+                counterMsg.innerHTML = `<i class="fa-solid fa-users mr-1 text-blue-500"></i> Exibindo <span class="text-slate-800 font-bold">${patientsToDisplay.length}</span> de ${totalCount} pacientes na Matriz Geral.`;
+
+                html += '<th scope="col" class="px-4 py-3 sticky left-0 top-0 bg-slate-200 z-30 border-b shadow-[1px_0_0_0_#cbd5e1]">Nome do(a) Paciente</th>';
+                html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Nascimento</th>';
+                html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Idade</th>';
+                html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Endereço</th>';
+                html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Microárea</th>';
+                currentMetrics.forEach(m => {
+                    html += `<th scope="col" class="px-4 py-3 text-center bg-slate-100 border-b z-20 sticky top-0">${m.shortName || m.name}</th>`;
+                });
+                html += '</tr></thead><tbody class="divide-y divide-slate-100">';
+                
+                if (patientsToDisplay.length === 0) {
+                    html += `<tr><td colspan="${5 + currentMetrics.length}" class="px-4 py-8 text-center text-slate-500"><i class="fa-solid fa-triangle-exclamation text-2xl text-amber-500 mb-2 block"></i>Nenhum paciente encontrado com estes filtros.</td></tr>`;
+                } else {
+                    patientsToDisplay.forEach((p, idx) => {
+                        let bg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                        html += `<tr class="hover:bg-slate-100 transition-colors ${bg}">
+                            <td class="px-4 py-3 sticky left-0 z-10 ${bg} shadow-[1px_0_0_0_#e2e8f0] font-semibold text-slate-700">${p.nome}</td>
+                            <td class="px-4 py-3">${p.nascimento}</td>
+                            <td class="px-4 py-3">${p.idadeTexto}</td>
+                            <td class="px-4 py-3">${p.endereco}</td>
+                            <td class="px-4 py-3">${p.micro}</td>`;
+                        currentMetrics.forEach(m => {
+                            const icon = p.metrics[m.id] 
+                                ? '<i class="fa-solid fa-check text-emerald-500" title="Atingido"></i>' 
+                                : '<i class="fa-solid fa-xmark text-rose-500" title="Pendente"></i>';
+                            html += `<td class="px-4 py-2 text-center">${icon}</td>`;
+                        });
+                        html += '</tr>';
+                    });
+                }
+            } else {
+                const metric = currentMetrics.find(m => m.id === tabId);
+                counterMsg.innerHTML = `<i class="fa-solid fa-triangle-exclamation mr-1 text-rose-500"></i> Exibindo <span class="text-slate-800 font-bold">${patientsToDisplay.length}</span> pacientes com pendência em <span class="text-slate-800 font-bold">${metric.shortName || metric.name}</span>.`;
+
+                html += `<th scope="col" class="px-4 py-3 sticky left-0 top-0 bg-slate-200 z-30 border-b shadow-[1px_0_0_0_#cbd5e1]">Pacientes com a Pendência</th>`;
+                html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Nascimento</th>';
+                html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Idade</th>';
+                html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Endereço</th>';
+                html += '<th scope="col" class="px-4 py-3 bg-slate-100 border-b z-20 sticky top-0">Microárea</th>';
+                html += '<th scope="col" class="px-4 py-3 text-center bg-slate-100 border-b z-20 sticky top-0 w-32">Status</th>';
+                html += '</tr></thead><tbody class="divide-y divide-slate-100">';
+                
+                if (patientsToDisplay.length === 0) {
+                    html += `<tr><td colspan="6" class="px-4 py-8 text-center text-slate-500"><i class="fa-solid fa-face-smile-beam text-3xl text-emerald-500 mb-3 block"></i>Nenhuma pendência encontrada com estes filtros!</td></tr>`;
+                } else {
+                    patientsToDisplay.forEach((p, idx) => {
+                        let bg = idx % 2 === 0 ? 'bg-white' : 'bg-slate-50';
+                        html += `<tr class="hover:bg-slate-100 transition-colors ${bg}">
+                            <td class="px-4 py-3 sticky left-0 z-10 ${bg} shadow-[1px_0_0_0_#e2e8f0] font-semibold text-slate-700">${p.nome}</td>
+                            <td class="px-4 py-3">${p.nascimento}</td>
+                            <td class="px-4 py-3">${p.idadeTexto}</td>
+                            <td class="px-4 py-3">${p.endereco}</td>
+                            <td class="px-4 py-3">${p.micro}</td>
+                            <td class="px-4 py-2 text-center"><span class="bg-rose-100 text-rose-700 px-2 py-1 rounded font-bold text-xs border border-rose-200 shadow-sm">Pendente</span></td>
+                        </tr>`;
+                    });
+                }
+            }
+            
+            html += '</tbody></table>';
+            content.innerHTML = html;
         }
 
         // Exportação da tabela nominal principal
