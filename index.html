@@ -105,7 +105,7 @@
             <!-- KPIs -->
             <div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6" id="kpi-container">
                 <!-- Card Total -->
-                <div class="glass-card rounded-2xl p-6 border-l-4 border-blue-500" id="card-total">
+                <div class="glass-card rounded-2xl p-6 border-l-4 border-blue-500 flex flex-col justify-between" id="card-total">
                     <div class="flex items-center justify-between">
                         <div>
                             <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider" id="label-total-card">Total de Pacientes</p>
@@ -115,16 +115,25 @@
                             <i class="fa-solid fa-users text-2xl"></i>
                         </div>
                     </div>
+                    <div class="w-full h-2 mt-4"></div> <!-- Spacer para igualar altura -->
                 </div>
 
                 <!-- Card de Score Geral -->
-                <div class="glass-card rounded-2xl p-6 flex flex-col justify-center items-center border-t-4" id="score-card">
-                    <h3 class="text-sm font-bold text-slate-500 uppercase tracking-wider mb-2 text-center">Score do Indicador</h3>
-                    <div class="relative w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center rounded-full border-8" id="score-circle">
-                        <span class="text-3xl sm:text-4xl font-extrabold text-slate-800" id="score-value">0</span>
+                <div class="glass-card rounded-2xl p-6 border-l-4 flex flex-col justify-between" id="score-card">
+                    <div class="flex items-center justify-between">
+                        <div>
+                            <p class="text-sm font-semibold text-slate-500 uppercase tracking-wider">Score do Indicador</p>
+                            <div class="flex items-baseline space-x-2 mt-2">
+                                <h2 class="text-4xl font-extrabold text-slate-800" id="score-value">0</h2>
+                                <span class="text-xs font-bold px-2 py-0.5 rounded shadow-sm relative -top-1" id="score-parameter">-</span>
+                            </div>
+                        </div>
+                        <div class="p-4 rounded-full" id="score-icon-bg">
+                            <i class="fa-solid fa-ranking-star text-2xl" id="score-icon"></i>
+                        </div>
                     </div>
-                    <div class="mt-4 px-4 py-1 rounded-full text-sm font-bold shadow-sm" id="score-parameter">
-                        -
+                    <div class="w-full bg-slate-200 rounded-full h-2 mt-4">
+                        <div class="h-2 rounded-full transition-all duration-1000" style="width: 0%" id="score-bar"></div>
                     </div>
                 </div>
             </div>
@@ -675,34 +684,44 @@
 
             // Define o Parâmetro e as Cores com base na regra do Ministério da Saúde
             let scoreParam = document.getElementById('score-parameter');
-            let scoreCircle = document.getElementById('score-circle');
             let scoreCard = document.getElementById('score-card');
+            let scoreIconBg = document.getElementById('score-icon-bg');
+            let scoreIcon = document.getElementById('score-icon');
+            let scoreBar = document.getElementById('score-bar');
             
-            scoreParam.className = "mt-4 px-4 py-1 rounded-full text-sm font-bold shadow-sm";
-            scoreCircle.className = "relative w-24 h-24 sm:w-32 sm:h-32 flex items-center justify-center rounded-full border-8";
-            scoreCard.className = "glass-card rounded-2xl p-6 flex flex-col justify-center items-center border-t-4";
+            scoreParam.className = "text-xs font-bold px-2 py-0.5 rounded shadow-sm relative -top-1";
+            scoreCard.className = "glass-card rounded-2xl p-6 border-l-4 flex flex-col justify-between";
+            scoreIconBg.className = "p-4 rounded-full";
 
             if (finalScore > 75) {
                 scoreParam.innerText = "Ótimo";
                 scoreParam.classList.add('bg-emerald-100', 'text-emerald-700');
-                scoreCircle.classList.add('border-emerald-500');
                 scoreCard.classList.add('border-emerald-500');
+                scoreIconBg.classList.add('bg-emerald-100', 'text-emerald-600');
+                scoreBar.className = "bg-emerald-500 h-2 rounded-full transition-all duration-1000";
             } else if (finalScore > 50) {
                 scoreParam.innerText = "Bom";
                 scoreParam.classList.add('bg-blue-100', 'text-blue-700');
-                scoreCircle.classList.add('border-blue-500');
                 scoreCard.classList.add('border-blue-500');
+                scoreIconBg.classList.add('bg-blue-100', 'text-blue-600');
+                scoreBar.className = "bg-blue-500 h-2 rounded-full transition-all duration-1000";
             } else if (finalScore > 25) {
                 scoreParam.innerText = "Suficiente";
                 scoreParam.classList.add('bg-yellow-100', 'text-yellow-700');
-                scoreCircle.classList.add('border-yellow-400');
                 scoreCard.classList.add('border-yellow-400');
+                scoreIconBg.classList.add('bg-yellow-100', 'text-yellow-600');
+                scoreBar.className = "bg-yellow-400 h-2 rounded-full transition-all duration-1000";
             } else {
                 scoreParam.innerText = "Regular";
                 scoreParam.classList.add('bg-rose-100', 'text-rose-700');
-                scoreCircle.classList.add('border-rose-500');
                 scoreCard.classList.add('border-rose-500');
+                scoreIconBg.classList.add('bg-rose-100', 'text-rose-600');
+                scoreBar.className = "bg-rose-500 h-2 rounded-full transition-all duration-1000";
             }
+
+            setTimeout(() => {
+                if(scoreBar) scoreBar.style.width = `${finalScore}%`;
+            }, 100);
 
             // 2. Preenchimento da Tabela de Boas Práticas
             const tbody = document.getElementById('boas-praticas-body');
