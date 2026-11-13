@@ -64,7 +64,8 @@
         <!-- Abas de Navegação -->
         <div class="max-w-[96%] mx-auto px-4 sm:px-6 lg:px-8 overflow-x-auto">
             <nav class="flex space-x-2 mt-2 min-w-max pb-1" aria-label="Tabs">
-                <button onclick="setCondition('infantil')" id="tab-infantil" class="bg-white text-blue-600 px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-100">C2 - Desenvolvimento Infantil</button>
+                <button onclick="setCondition('geral')" id="tab-geral" class="bg-white text-blue-600 px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-100">Geral</button>
+                <button onclick="setCondition('infantil')" id="tab-infantil" class="bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100">C2 - Desenvolvimento Infantil</button>
                 <button onclick="setCondition('gestantes')" id="tab-gestantes" class="bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100">C3 - Gestantes e Puérperas</button>
                 <button onclick="setCondition('diabeticos')" id="tab-diabeticos" class="bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100">C4 - Diabéticos</button>
                 <button onclick="setCondition('hipertensos')" id="tab-hipertensos" class="bg-blue-700 hover:bg-blue-500 text-white px-5 py-2.5 rounded-t-lg font-bold shadow-sm transition-colors focus:outline-none opacity-80 hover:opacity-100">C5 - Hipertensos</button>
@@ -139,7 +140,7 @@
             </div>
 
             <!-- Tabela de Boas Práticas -->
-            <div class="glass-card rounded-2xl p-6 overflow-x-auto">
+            <div id="boas-praticas-container" class="glass-card rounded-2xl p-6 overflow-x-auto">
                 <h3 class="text-lg font-bold text-slate-700 mb-4 border-b pb-2"><i class="fa-solid fa-list-check mr-2 text-blue-600"></i>Boas Práticas e Desempenho</h3>
                 <table class="min-w-full text-left text-sm">
                     <thead class="bg-slate-50 text-slate-600 font-bold uppercase text-xs">
@@ -197,6 +198,17 @@
                         <div class="relative">
                             <select id="microarea-filter" onchange="filterNominalTable()" class="bg-white border border-slate-300 text-slate-700 text-xs font-medium rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 shadow-sm">
                                 <option value="todas">Todas as Microáreas</option>
+                            </select>
+                        </div>
+                        <!-- Filtro por Faixa Etária -->
+                        <div class="relative">
+                            <select id="idade-filter" onchange="filterNominalTable()" class="bg-white border border-slate-300 text-slate-700 text-xs font-medium rounded-lg px-3 py-1.5 focus:outline-none focus:border-blue-500 shadow-sm">
+                                <option value="todas">Todas as Idades</option>
+                                <option value="0-19 anos">0-19 anos</option>
+                                <option value="20-39 anos">20-39 anos</option>
+                                <option value="40-59 anos">40-59 anos</option>
+                                <option value="60-79 anos">60-79 anos</option>
+                                <option value="80+ anos">80+ anos</option>
                             </select>
                         </div>
                         <div class="relative">
@@ -307,6 +319,16 @@
         }
 
         const CONDITIONS = {
+            geral: {
+                label: 'Geral - Todos os Pacientes',
+                file: 'acompanhamento-condicao-saude_2026-11-13-13-26.csv',
+                metrics: [
+                    { id: 'consulta', shortName: 'Consulta (12m)', bpDesc: 'Ter pelo menos 01 (uma) consulta presencial ou remota nos últimos 12 meses.', points: 25, name: 'Consultas Recentes', icon: 'fa-user-doctor', border: 'border-indigo-500', text: 'text-indigo-600', bg: 'bg-indigo-100', bar: 'bg-indigo-500', forceCol: 21, maxDays: 365 },
+                    { id: 'visita', shortName: 'Visita ACS (12m)', bpDesc: 'Ter pelo menos 01 (uma) visita domiciliar por ACS/TACS nos últimos 12 meses.', points: 25, name: 'Visitas ACS', icon: 'fa-house-medical', border: 'border-emerald-500', text: 'text-emerald-600', bg: 'bg-emerald-100', bar: 'bg-emerald-500', forceCol: 27, maxDays: 365 },
+                    { id: 'peso_altura', shortName: 'Peso/Altura (12m)', bpDesc: 'Ter pelo menos 01 (um) registro de peso e altura nos últimos 12 meses.', points: 25, hidden: true, forceCol: 31, maxDays: 365 },
+                    { id: 'pa', shortName: 'Aferição PA (12m)', bpDesc: 'Ter pelo menos 01 (um) registro de aferição de pressão arterial nos últimos 12 meses.', points: 25, hidden: true, forceCol: 33, maxDays: 365 }
+                ]
+            },
             infantil: {
                 label: 'C2 - Desenvolvimento Infantil',
                 file: 'acompanhamento-condicao-saude_2026-11-05-08-44.csv',
@@ -383,9 +405,9 @@
         Chart.defaults.color = '#64748b';
 
         let charts = {};
-        let currentCondition = 'infantil';
+        let currentCondition = 'geral';
         let activeTabId = 'geral';
-        let tabCache = { infantil: null, gestantes: null, diabeticos: null, hipertensos: null, idosos: null, mulher: null };
+        let tabCache = { geral: null, infantil: null, gestantes: null, diabeticos: null, hipertensos: null, idosos: null, mulher: null };
         let currentPatientsList = [];
 
         document.addEventListener('DOMContentLoaded', () => {
@@ -588,6 +610,7 @@
                 const endereco = enderecoParts.length > 0 ? enderecoParts.join(', ').toUpperCase() : "-";
 
                 let idadeTexto = "-";
+                let faixaStr = "";
                 stats.microareas[micro] = (stats.microareas[micro] || 0) + 1;
 
                 if (colSexo !== -1 && row[colSexo]) {
@@ -612,11 +635,11 @@
                     }
 
                     if (!isNaN(idade)) {
-                        if (idade < 20) stats.faixaEtaria["0-19 anos"]++;
-                        else if (idade < 40) stats.faixaEtaria["20-39 anos"]++;
-                        else if (idade < 60) stats.faixaEtaria["40-59 anos"]++;
-                        else if (idade < 80) stats.faixaEtaria["60-79 anos"]++;
-                        else stats.faixaEtaria["80+ anos"]++;
+                        if (idade < 20) { stats.faixaEtaria["0-19 anos"]++; faixaStr = "0-19 anos"; }
+                        else if (idade < 40) { stats.faixaEtaria["20-39 anos"]++; faixaStr = "20-39 anos"; }
+                        else if (idade < 60) { stats.faixaEtaria["40-59 anos"]++; faixaStr = "40-59 anos"; }
+                        else if (idade < 80) { stats.faixaEtaria["60-79 anos"]++; faixaStr = "60-79 anos"; }
+                        else { stats.faixaEtaria["80+ anos"]++; faixaStr = "80+ anos"; }
                     }
                 }
 
@@ -654,7 +677,7 @@
                     }
                 });
 
-                stats.patients.push({ nome, micro, nascimento, endereco, idadeTexto, metrics: pMetrics });
+                stats.patients.push({ nome, micro, nascimento, endereco, idadeTexto, faixaEtaria: faixaStr, metrics: pMetrics });
             });
 
             tabCache[currentCondition] = stats;
@@ -666,92 +689,101 @@
             document.getElementById('dashboard-content').classList.remove('hidden');
 
             const currentMetrics = CONDITIONS[currentCondition].metrics;
+            const scoreCard = document.getElementById('score-card');
+            const boasPraticasContainer = document.getElementById('boas-praticas-container');
             
-            // 1. Cálculo de Score Geral
-            let totalPointsAchieved = 0;
-            
-            stats.patients.forEach(p => {
-                currentMetrics.forEach(m => {
-                    if (p.metrics[m.id]) {
-                        totalPointsAchieved += (m.points || 0);
-                    }
-                });
-            });
-
-            // Média de pontuação por paciente 
-            let finalScore = stats.total > 0 ? (totalPointsAchieved / stats.total).toFixed(1) : 0;
-            document.getElementById('score-value').innerText = finalScore;
-
-            // Define o Parâmetro e as Cores com base na regra do Ministério da Saúde
-            let scoreParam = document.getElementById('score-parameter');
-            let scoreCard = document.getElementById('score-card');
-            let scoreIconBg = document.getElementById('score-icon-bg');
-            let scoreIcon = document.getElementById('score-icon');
-            let scoreBar = document.getElementById('score-bar');
-            
-            scoreParam.className = "text-xs font-bold px-2 py-0.5 rounded shadow-sm relative -top-1";
-            scoreCard.className = "glass-card rounded-2xl p-6 border-l-4 flex flex-col justify-between";
-            scoreIconBg.className = "p-4 rounded-full";
-
-            if (finalScore > 75) {
-                scoreParam.innerText = "Ótimo";
-                scoreParam.classList.add('bg-emerald-100', 'text-emerald-700');
-                scoreCard.classList.add('border-emerald-500');
-                scoreIconBg.classList.add('bg-emerald-100', 'text-emerald-600');
-                scoreBar.className = "bg-emerald-500 h-2 rounded-full transition-all duration-1000";
-            } else if (finalScore > 50) {
-                scoreParam.innerText = "Bom";
-                scoreParam.classList.add('bg-blue-100', 'text-blue-700');
-                scoreCard.classList.add('border-blue-500');
-                scoreIconBg.classList.add('bg-blue-100', 'text-blue-600');
-                scoreBar.className = "bg-blue-500 h-2 rounded-full transition-all duration-1000";
-            } else if (finalScore > 25) {
-                scoreParam.innerText = "Suficiente";
-                scoreParam.classList.add('bg-yellow-100', 'text-yellow-700');
-                scoreCard.classList.add('border-yellow-400');
-                scoreIconBg.classList.add('bg-yellow-100', 'text-yellow-600');
-                scoreBar.className = "bg-yellow-400 h-2 rounded-full transition-all duration-1000";
+            // Oculta Score e Boas Práticas na aba "Geral"
+            if (currentCondition === 'geral') {
+                scoreCard.style.display = 'none';
+                boasPraticasContainer.style.display = 'none';
             } else {
-                scoreParam.innerText = "Regular";
-                scoreParam.classList.add('bg-rose-100', 'text-rose-700');
-                scoreCard.classList.add('border-rose-500');
-                scoreIconBg.classList.add('bg-rose-100', 'text-rose-600');
-                scoreBar.className = "bg-rose-500 h-2 rounded-full transition-all duration-1000";
-            }
+                scoreCard.style.display = '';
+                boasPraticasContainer.style.display = '';
 
-            setTimeout(() => {
-                if(scoreBar) scoreBar.style.width = `${finalScore}%`;
-            }, 100);
-
-            // 2. Preenchimento da Tabela de Boas Práticas
-            const tbody = document.getElementById('boas-praticas-body');
-            tbody.innerHTML = '';
-            
-            currentMetrics.forEach(m => {
-                let count = stats.metricCounts[m.id] || 0;
-                let pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
-                let notDone = stats.total - count;
+                // 1. Cálculo de Score Geral
+                let totalPointsAchieved = 0;
                 
-                let row = `
-                <tr class="hover:bg-slate-100 transition-colors">
-                    <td class="p-3 border-b">
-                        <div class="font-bold text-slate-800">${m.shortName || m.name} 
-                            <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded ml-2 font-bold">${m.points} pts</span>
-                        </div>
-                        <div class="text-xs text-slate-500 mt-1 whitespace-normal">${m.bpDesc}</div>
-                    </td>
-                    <td class="p-3 border-b text-center font-extrabold text-slate-700">
-                        ${pct}%
-                    </td>
-                    <td class="p-3 border-b text-center font-bold text-emerald-600">
-                        ${count}
-                    </td>
-                    <td class="p-3 border-b text-center font-bold text-rose-500">
-                        ${notDone}
-                    </td>
-                </tr>`;
-                tbody.insertAdjacentHTML('beforeend', row);
-            });
+                stats.patients.forEach(p => {
+                    currentMetrics.forEach(m => {
+                        if (p.metrics[m.id]) {
+                            totalPointsAchieved += (m.points || 0);
+                        }
+                    });
+                });
+
+                // Média de pontuação por paciente 
+                let finalScore = stats.total > 0 ? (totalPointsAchieved / stats.total).toFixed(1) : 0;
+                document.getElementById('score-value').innerText = finalScore;
+
+                // Define o Parâmetro e as Cores com base na regra do Ministério da Saúde
+                let scoreParam = document.getElementById('score-parameter');
+                let scoreIconBg = document.getElementById('score-icon-bg');
+                let scoreBar = document.getElementById('score-bar');
+                
+                scoreParam.className = "text-xs font-bold px-2 py-0.5 rounded shadow-sm relative -top-1";
+                scoreCard.className = "glass-card rounded-2xl p-6 border-l-4 flex flex-col justify-between";
+                scoreIconBg.className = "p-4 rounded-full";
+
+                if (finalScore > 75) {
+                    scoreParam.innerText = "Ótimo";
+                    scoreParam.classList.add('bg-emerald-100', 'text-emerald-700');
+                    scoreCard.classList.add('border-emerald-500');
+                    scoreIconBg.classList.add('bg-emerald-100', 'text-emerald-600');
+                    scoreBar.className = "bg-emerald-500 h-2 rounded-full transition-all duration-1000";
+                } else if (finalScore > 50) {
+                    scoreParam.innerText = "Bom";
+                    scoreParam.classList.add('bg-blue-100', 'text-blue-700');
+                    scoreCard.classList.add('border-blue-500');
+                    scoreIconBg.classList.add('bg-blue-100', 'text-blue-600');
+                    scoreBar.className = "bg-blue-500 h-2 rounded-full transition-all duration-1000";
+                } else if (finalScore > 25) {
+                    scoreParam.innerText = "Suficiente";
+                    scoreParam.classList.add('bg-yellow-100', 'text-yellow-700');
+                    scoreCard.classList.add('border-yellow-400');
+                    scoreIconBg.classList.add('bg-yellow-100', 'text-yellow-600');
+                    scoreBar.className = "bg-yellow-400 h-2 rounded-full transition-all duration-1000";
+                } else {
+                    scoreParam.innerText = "Regular";
+                    scoreParam.classList.add('bg-rose-100', 'text-rose-700');
+                    scoreCard.classList.add('border-rose-500');
+                    scoreIconBg.classList.add('bg-rose-100', 'text-rose-600');
+                    scoreBar.className = "bg-rose-500 h-2 rounded-full transition-all duration-1000";
+                }
+
+                setTimeout(() => {
+                    if(scoreBar) scoreBar.style.width = `${finalScore}%`;
+                }, 100);
+
+                // 2. Preenchimento da Tabela de Boas Práticas
+                const tbody = document.getElementById('boas-praticas-body');
+                tbody.innerHTML = '';
+                
+                currentMetrics.forEach(m => {
+                    let count = stats.metricCounts[m.id] || 0;
+                    let pct = stats.total > 0 ? Math.round((count / stats.total) * 100) : 0;
+                    let notDone = stats.total - count;
+                    
+                    let row = `
+                    <tr class="hover:bg-slate-100 transition-colors">
+                        <td class="p-3 border-b">
+                            <div class="font-bold text-slate-800">${m.shortName || m.name} 
+                                <span class="text-[10px] bg-slate-200 text-slate-600 px-2 py-0.5 rounded ml-2 font-bold">${m.points} pts</span>
+                            </div>
+                            <div class="text-xs text-slate-500 mt-1 whitespace-normal">${m.bpDesc}</div>
+                        </td>
+                        <td class="p-3 border-b text-center font-extrabold text-slate-700">
+                            ${pct}%
+                        </td>
+                        <td class="p-3 border-b text-center font-bold text-emerald-600">
+                            ${count}
+                        </td>
+                        <td class="p-3 border-b text-center font-bold text-rose-500">
+                            ${notDone}
+                        </td>
+                    </tr>`;
+                    tbody.insertAdjacentHTML('beforeend', row);
+                });
+            }
 
             // Resto da função updateUI original
             document.getElementById('kpi-total').innerText = stats.total;
@@ -847,6 +879,7 @@
                 
                 document.getElementById('nominal-search').value = '';
                 if(document.getElementById('microarea-filter')) document.getElementById('microarea-filter').value = 'todas';
+                if(document.getElementById('idade-filter')) document.getElementById('idade-filter').value = 'todas';
                 
                 buildTableHtml(currentPatientsList, tabId);
             };
@@ -944,11 +977,13 @@
 
             const searchTerm = document.getElementById('nominal-search').value.toLowerCase().trim();
             const selectedMicro = document.getElementById('microarea-filter').value;
+            const selectedIdade = document.getElementById('idade-filter').value;
 
             const filtered = baseList.filter(p => {
                 const matchSearch = p.nome.toLowerCase().includes(searchTerm) || p.nascimento.toLowerCase().includes(searchTerm) || p.endereco.toLowerCase().includes(searchTerm);
                 const matchMicro = selectedMicro === 'todas' || p.micro === selectedMicro;
-                return matchSearch && matchMicro;
+                const matchIdade = selectedIdade === 'todas' || p.faixaEtaria === selectedIdade;
+                return matchSearch && matchMicro && matchIdade;
             });
 
             buildTableHtml(filtered, activeTabId, true);
